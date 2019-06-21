@@ -1,3 +1,5 @@
 <div align=center><img src="https://github.com/gaoxianglong/corgi-proxy/blob/master/corgi-logo.jpeg"/></div>
-# corgi-proxy
-corgi-proxy注册中心中间件，大规模微服务场景下注册中心性能瓶颈解决方案
+
+## corgi-proxy  [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+
+## corgi-proxy简介
