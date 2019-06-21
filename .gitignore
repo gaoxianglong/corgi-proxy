@@ -1,0 +1,10 @@
+# IntelliJ project files
+.idea
+*.iml
+
+# for Maven
+corgi-proxy/logs
+corgi-proxy-api/target/
+corgi-proxy-api-dubbo/target/
+corgi-proxy-server/target/
+corgi-proxy-utils/target/
