@@ -1,4 +1,4 @@
-<div align=center><img src="https://github.com/gaoxianglong/corgi-proxy/blob/master/corgi-logo.jpeg"/></div>
+<div align=center><img width="350" height="262" src="https://github.com/gaoxianglong/corgi-proxy/blob/master/corgi-logo.jpeg"/></div>
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html) [![Join the chat at https://gitter.im/gaoxianglong/shark](https://badges.gitter.im/gaoxianglong/shark.svg)](https://gitter.im/gaoxianglong/shark?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) 
 > 最终一致性、增量数据拉取，且去中心化的Registry中间件<br/>
