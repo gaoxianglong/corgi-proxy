@@ -18,6 +18,7 @@ package com.github.registry.corgi.client.handlers;
 import com.github.registry.corgi.client.CorgiClientCallBack;
 import com.github.registry.corgi.client.CorgiConnectionHandler;
 import com.github.registry.corgi.client.CorgiFramework;
+import com.github.registry.corgi.client.RegisterCallBack;
 import com.github.registry.corgi.client.exceptions.CorgiClientException;
 import com.github.registry.corgi.utils.CorgiProtocol;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,11 +39,11 @@ import java.util.concurrent.TimeUnit;
 public class CorgiClientHandler extends ChannelInboundHandlerAdapter {
     private Map<Long, Object> threadMap;
     private Map<Long, CorgiProtocol> resultMap;
-    private Map<String, CorgiClientCallBack> registerPaths;
+    private Map<String, RegisterCallBack> registerPaths;
     private Logger log = LoggerFactory.getLogger(CorgiClientHandler.class);
 
     public CorgiClientHandler(Map<Long, Object> threadMap, Map<Long, CorgiProtocol> resultMap,
-                              Map<String, CorgiClientCallBack> registerPaths) {
+                              Map<String, RegisterCallBack> registerPaths) {
         this.threadMap = threadMap;
         this.resultMap = resultMap;
         this.registerPaths = registerPaths;

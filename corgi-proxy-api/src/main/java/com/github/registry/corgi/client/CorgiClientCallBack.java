@@ -16,15 +16,11 @@
 package com.github.registry.corgi.client;
 
 /**
- * 回调函数,断线重连时回调重新注册
+ * 回调函数标记接口
  *
  * @author gao_xianglong@sina.com
  * @version 0.1-SNAPSHOT
  * @date created in 2019-06-20 17:15
  */
 public interface CorgiClientCallBack {
-    /**
-     * 触发重新注册
-     */
-    void execute();
 }

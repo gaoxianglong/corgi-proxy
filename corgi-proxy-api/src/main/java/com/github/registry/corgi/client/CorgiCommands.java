@@ -46,10 +46,10 @@ public interface CorgiCommands {
     /**
      * 增量订阅接口,如果是第一次订阅,则返回一个服务接口下的全量地址列表
      *
-     * @param persistentNod
+     * @param persistentNode
      * @return
      */
-    NodeBo subscribe(String persistentNod);
+    NodeBo subscribe(String persistentNode);
 
     class NodeBo {
         /**

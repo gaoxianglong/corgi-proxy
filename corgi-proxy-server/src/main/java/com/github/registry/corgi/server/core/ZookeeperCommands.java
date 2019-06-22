@@ -89,5 +89,5 @@ public interface ZookeeperCommands {
      * @param callBack
      * @throws Exception
      */
-    void watch(String rootPath, CorgiCallBack callBack) throws Exception;
+    void watch(String rootPath, WatchCallBack callBack) throws Exception;
 }

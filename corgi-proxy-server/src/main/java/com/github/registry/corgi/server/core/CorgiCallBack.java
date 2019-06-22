@@ -16,17 +16,11 @@
 package com.github.registry.corgi.server.core;
 
 /**
- * 回调函数，主要是watch事件的时候会用到
+ * 回调函数标记接口
  *
  * @author gao_xianglong@sina.com
  * @version 0.1-SNAPSHOT
  * @date created in 2019-06-20 11:54
  */
 public interface CorgiCallBack {
-    /**
-     * 向本地队列中写入消息
-     *
-     * @param path
-     */
-    void execute(String path);
 }

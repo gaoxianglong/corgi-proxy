@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+			http://code.alibabatech.com/schema/dubbo
+			http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+    <context:component-scan
+            base-package="com.github.registry.corgi"/>
+    <dubbo:application name="test-app"/>
+    <context:property-placeholder
+            location="classpath:properties/dubbo.properties"/>
+    <dubbo:registry protocol="corgi" id="corgi"
+                    address="${corgiHost}"/>
+    <dubbo:reference id="serviceB"
+                     interface="com.github.registry.corgi.service.ServiceB" timeout="1000"
+                     cluster="failfast"/>
+</beans>

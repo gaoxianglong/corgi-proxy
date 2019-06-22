@@ -105,7 +105,7 @@ public class ZookeeperConnectionHandler implements ZookeeperCommands {
     }
 
     @Override
-    public void watch(String rootPath, CorgiCallBack callBack) throws Exception {
+    public void watch(String rootPath, WatchCallBack callBack) throws Exception {
         new ZookeeperCommandsImpl(framework).watch(rootPath, callBack);
     }
 }

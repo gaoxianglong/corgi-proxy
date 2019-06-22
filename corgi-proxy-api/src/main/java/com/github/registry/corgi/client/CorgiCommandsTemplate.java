@@ -20,7 +20,9 @@ import com.github.registry.corgi.client.exceptions.CorgiMaxRedirectionsException
 import com.github.registry.corgi.utils.CorgiProtocol;
 import com.github.registry.corgi.utils.CorgiSerializationUtil;
 import com.github.registry.corgi.utils.TransferBo;
+import org.apache.commons.lang3.StringUtils;
 
+import javax.xml.soap.Node;
 import java.util.Map;
 
 /**
@@ -31,7 +33,7 @@ import java.util.Map;
  * @date created in 2019-06-17 22:25
  */
 public class CorgiCommandsTemplate implements CorgiCommands {
-    private Map<String, CorgiClientCallBack> registerPaths = CorgiFramework.getRegisterPaths();
+    private Map<String, RegisterCallBack> registerPaths = CorgiFramework.getRegisterPaths();
     private CorgiConnectionHandler connectionHandler = CorgiFramework.getCorgiConnectionHandler();
     /**
      * 所使用的序列化类型
@@ -44,19 +46,24 @@ public class CorgiCommandsTemplate implements CorgiCommands {
         this.redirections = redirections;
     }
 
+    private <T> T run(CheckCallBack<T> callBack, String... params) {//TODO 这里的设计稍微复杂了点，后续调整
+        check(params);//非空校验
+        return callBack.execute();
+    }
+
     /**
      * 模板方法,主要处理获取连接、序列化/反序列化相关等相关任务
      *
      * @return
      */
-    private TransferBo execute(int redirections, TransferBo transferBo, CorgiProtocol protocol, CommandException e) {
+    private TransferBo.Content runWithRetries(int redirections, TransferBo transferBo, CorgiProtocol protocol, CommandException e) {
         if (redirections <= 0) {
             throw new CorgiMaxRedirectionsException("Too many redirections!!!", e);
         }
-        if (!connectionHandler.isActive()) {
+        if (null == connectionHandler || !connectionHandler.isActive()) {
             throw new CommandException("The connection is unavailable!!!");
         }
-        TransferBo result = null;
+        TransferBo.Content result = null;
         try {
             final byte FLAG = protocol.getFlag();
             byte[] content = CorgiSerializationUtil.serialize(FLAG, transferBo);//序列化
@@ -65,41 +72,61 @@ public class CorgiCommandsTemplate implements CorgiCommands {
             CorgiFramework.getThreadMap().put(protocol.getMsgId(), this);
             connectionHandler.sendCommand(protocol, this);
             //对结果进行反序列化
-            result = CorgiSerializationUtil.deserialize(FLAG, connectionHandler.getResult(protocol.getMsgId()).getContent());
+            TransferBo temp = CorgiSerializationUtil.deserialize(FLAG, connectionHandler.getResult(protocol.getMsgId()).getContent());
+            if (null != temp) {
+                result = temp.getContent();
+            }
         } catch (Throwable e1) {
-            execute(--redirections, transferBo, protocol, new CommandException("Command execution failed!!!", e1));
+            runWithRetries(--redirections, transferBo, protocol, new CommandException("Command execution failed!!!", e1));
         }
         return result;
     }
 
     @Override
     public String register(String persistentNode, String ephemeralNode) {
-        TransferBo transferBo = new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder();
-        final String result = execute(redirections, transferBo,
-                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.REGISTER_TYPE), null).getContent().getResult();
-        if (result.equals(Constants.REQUEST_RESULT)) {
-            registerPaths.put(String.format("%s/%s", persistentNode, ephemeralNode), () -> {
-                this.connectionHandler = CorgiFramework.getCorgiConnectionHandler();
-                register(persistentNode, ephemeralNode);//断线重连时，回调重新注册
-            });
-        }
-        return result;
+        return run(() -> {
+            final String RESULT = runWithRetries(redirections, new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder(),
+                    assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.REGISTER_TYPE), null).getResult();
+            //判断命令是否执行成功,命令执行成功才执行后续的断线回调
+            if (RESULT.equals(Constants.REQUEST_RESULT)) {
+                final String PATH = String.format("%s/%s", persistentNode, ephemeralNode);
+                if (!registerPaths.containsKey(PATH)) {
+                    registerPaths.put(PATH, () -> {
+                        this.connectionHandler = CorgiFramework.getCorgiConnectionHandler();
+                        register(persistentNode, ephemeralNode);//断线重连时，回调重新注册
+                    });
+                }
+            }
+            return RESULT;
+        }, persistentNode, ephemeralNode);
     }
 
     @Override
     public String unRegister(String persistentNode, String ephemeralNode) {
-        return execute(redirections, new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder(),
-                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.UNREGISTER_TYPE), null).getContent().getResult();
+        return run(() -> runWithRetries(redirections, new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder(),
+                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.UNREGISTER_TYPE), null).getResult(), persistentNode, ephemeralNode);
     }
 
     @Override
-    public NodeBo subscribe(String persistentNodd) {
-        TransferBo.Content content = execute(redirections, new TransferBo.Builder(persistentNodd).builder(),
-                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null).getContent();
-        if (content.getResult().equals(Constants.REQUEST_RESULT)) {
-            return new NodeBo(content.getPlusNodes(), content.getReducesNodes());
+    public NodeBo subscribe(String persistentNode) {
+        return run(() -> {
+            TransferBo.Content content = runWithRetries(redirections, new TransferBo.Builder(persistentNode).builder(),
+                    assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null);
+            //判断命令是否执行成功,只有执行成功才返回结果集
+            if (content.getResult().equals(Constants.REQUEST_RESULT)) {
+                return new NodeBo(content.getPlusNodes(), content.getReducesNodes());
+            }
+            return null;
+        }, persistentNode);
+    }
+
+    private void check(String... params) {
+        String[] paths = params.clone();
+        for (String path : paths) {
+            if (StringUtils.isEmpty(path)) {
+                throw new CommandException("No way to dispatch this command to corgi-server");
+            }
         }
-        return null;
     }
 
     /**

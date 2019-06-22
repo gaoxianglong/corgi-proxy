@@ -123,7 +123,7 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
     }
 
     @Override
-    public synchronized void watch(String rootPath, CorgiCallBack callBack) throws Exception {
+    public synchronized void watch(String rootPath, WatchCallBack callBack) throws Exception {
         //每一个TreeCache上可以绑定多个Listener监听来通知每一个Channel上的本地队列
         getTreeCache(rootPath).getListenable().addListener((client, event) -> {
             String path = null;

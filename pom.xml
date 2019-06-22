@@ -12,6 +12,7 @@
         <module>corgi-proxy-api-dubbo</module>
         <module>corgi-proxy-server</module>
         <module>corgi-proxy-utils</module>
+        <module>corgi-proxy-demo</module>
     </modules>
     <properties>
         <java-version>1.8</java-version>

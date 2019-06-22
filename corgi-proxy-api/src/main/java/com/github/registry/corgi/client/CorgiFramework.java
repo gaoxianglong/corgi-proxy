@@ -39,7 +39,7 @@ public class CorgiFramework implements CorgiCommands {
     /**
      * 保存所有的注册项，断线重连后重新注册
      */
-    private volatile static Map<String, CorgiClientCallBack> registerPaths = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    private volatile static Map<String, RegisterCallBack> registerPaths = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
     private volatile static CorgiConnectionHandler connectionHandler;
     private volatile static List<HostAndPort> hostAndPorts = new Vector<>(Constants.INITIAL_CAPACITY);
     /**
@@ -153,7 +153,7 @@ public class CorgiFramework implements CorgiCommands {
         CorgiFramework.connectionHandler = connectionHandler;
     }
 
-    protected static Map<String, CorgiClientCallBack> getRegisterPaths() {
+    protected static Map<String, RegisterCallBack> getRegisterPaths() {
         return registerPaths;
     }
 
