@@ -15,5 +15,18 @@ Zookeeper并不适合作为大规模服务化场景下的Registry，其写操作
 ```java
 corgi=com.github.registry.corgi.CorgiRegistryFactory
 ```
-
-目前corgi-proxy暂未提交到Maven中央仓库，请自行编译打包；关于原生客户端API的使用，参考corgi-proxy-demo。
+- 非dubbo项目，原生客户端API的使用：
+```java
+CorgiFramework framework = new CorgiFramework.Builder(
+        new HostAndPort(hostName, port)).redirections(redirections).
+        serialization(CorgiFramework.SerializationType.FST).builder().init();//相关初始化
+framework.register("/dubbo/service", "127.0.0.1:20890");//服务注册
+framework.subscribe("/dubbo/service");//订阅
+framework.unRegister("/dubbo/service", "127.0.0.1:20890");//取消注册
+Executors.newSingleThreadScheduledExecutor().execute(() -> {
+    while (true) {
+        framework.subscribe("/dubbo/service");//持续订阅
+    }
+});
+```
+目前corgi-proxy暂未提交到Maven中央仓库，请自行编译打包；更多使用案例，参考corgi-proxy-demo。
