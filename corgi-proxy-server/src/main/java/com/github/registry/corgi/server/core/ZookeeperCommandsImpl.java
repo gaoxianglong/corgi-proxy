@@ -135,13 +135,13 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
             switch (event.getType()) {
                 case NODE_ADDED:
                     if (!rootPath.equalsIgnoreCase(path)) {
-                        log.debug("NODE_ADDED:{}", path);
+                        log.debug("ThreadName:{}, NODE_ADDED:{}", Thread.currentThread().getName(), path);
                         callBack.execute(String.format("+%s", path.split(String.format("%s/", rootPath))[1]));
                     }
                     break;
                 case NODE_REMOVED:
                     if (!rootPath.equalsIgnoreCase(path)) {
-                        log.debug("NODE_REMOVED:{}", path);
+                        log.debug("ThreadName:{},NODE_REMOVED:{}", Thread.currentThread().getName(), path);
                         callBack.execute(String.format("-%s", path.split(String.format("%s/", rootPath))[1]));
                     }
                     break;
@@ -156,7 +156,7 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
                 case INITIALIZED:
                     break;
             }
-        });
+        }, executorService);
     }
 
     private boolean isExists(String path) throws Exception {

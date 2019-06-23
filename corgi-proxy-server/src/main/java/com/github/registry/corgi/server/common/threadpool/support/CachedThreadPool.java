@@ -19,6 +19,7 @@ import com.github.registry.corgi.server.Constants;
 import com.github.registry.corgi.server.common.threadpool.ThreadPool;
 import org.apache.curator.shaded.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import java.util.Optional;
 import java.util.concurrent.*;
 
 /**
@@ -30,12 +31,13 @@ import java.util.concurrent.*;
  */
 public class CachedThreadPool implements ThreadPool {
     @Override
-    public ExecutorService getExecutor(int threads, int queues, int cores, int alive) {
+    public ExecutorService getExecutor(int threads, int queues, int cores, int alive, String nameFormat) {
+        nameFormat = Optional.ofNullable(nameFormat).orElseGet(() -> Constants.THREADPOOL_NAME + "-%d");
         return new ThreadPoolExecutor(cores, threads, alive, TimeUnit.MILLISECONDS,
                 queues == 0 ? new SynchronousQueue<Runnable>() :
                         (queues < 0 ? new LinkedBlockingQueue<Runnable>()
                                 : new LinkedBlockingQueue<Runnable>(queues)),
-                new ThreadFactoryBuilder().setNameFormat(Constants.THREADPOOL_NAME + "-%d").setDaemon(true).build(),
+                new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build(),
                 new ThreadPoolExecutor.AbortPolicy());
     }
 }

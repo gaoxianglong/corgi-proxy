@@ -30,9 +30,10 @@ public interface ThreadPool {
      *
      * @param threads
      * @param queues
+     * @param nameFormat
      * @return
      */
-    default ExecutorService getExecutor(int threads, int queues) {
+    default ExecutorService getExecutor(int threads, int queues, String nameFormat) {
         return null;
     }
 
@@ -42,9 +43,10 @@ public interface ThreadPool {
      * @param threads
      * @param queues
      * @param cores
+     * @param nameFormat
      * @return
      */
-    default ExecutorService getExecutor(int threads, int queues, int cores) {
+    default ExecutorService getExecutor(int threads, int queues, int cores, String nameFormat) {
         return null;
     }
 
@@ -55,9 +57,10 @@ public interface ThreadPool {
      * @param queues
      * @param cores
      * @param alive
+     * @param nameFormat
      * @return
      */
-    default ExecutorService getExecutor(int threads, int queues, int cores, int alive) {
+    default ExecutorService getExecutor(int threads, int queues, int cores, int alive, String nameFormat) {
         return null;
     }
 

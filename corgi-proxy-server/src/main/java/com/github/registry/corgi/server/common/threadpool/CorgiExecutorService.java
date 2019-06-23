@@ -51,6 +51,7 @@ public class CorgiExecutorService implements ThreadPool {
      * 空闲时间,单位ms
      */
     private int alive;
+    private String nameFormat;
 
     private CorgiExecutorService(Builder builder) {
         this.threadPool = builder.threadPool;
@@ -58,6 +59,7 @@ public class CorgiExecutorService implements ThreadPool {
         this.cores = builder.cores;
         this.queues = builder.queues;
         this.alive = builder.alive;
+        this.nameFormat = builder.nameFormat;
     }
 
     public static class Builder {
@@ -66,11 +68,17 @@ public class CorgiExecutorService implements ThreadPool {
         private int queues;
         private int cores;
         private int alive;
+        private String nameFormat;
 
         public Builder(int threads, int queues, String threadPool) {
             this.threads = threads;
             this.queues = queues;
             this.threadPool = threadPool;
+        }
+
+        public Builder nameFormat(String nameFormat) {
+            this.nameFormat = nameFormat;
+            return this;
         }
 
         public Builder cores(int cores) {
@@ -95,6 +103,7 @@ public class CorgiExecutorService implements ThreadPool {
                     ", queues=" + queues +
                     ", cores=" + cores +
                     ", alive=" + alive +
+                    ", nameFormat='" + nameFormat + '\'' +
                     '}';
         }
     }
@@ -103,10 +112,10 @@ public class CorgiExecutorService implements ThreadPool {
     public ExecutorService getExecutor() {
         //如果传入的不是limit也按LimitedThreadPool返回
         return threadPool.equalsIgnoreCase("fixed") ?
-                new FixedThreadPool().getExecutor(threads, queues) :
+                new FixedThreadPool().getExecutor(threads, queues, nameFormat) :
                 (threadPool.equalsIgnoreCase("cached") ?
-                        new CachedThreadPool().getExecutor(threads, queues, cores, alive) :
-                        new LimitedThreadPool().getExecutor(threads, queues, cores));
+                        new CachedThreadPool().getExecutor(threads, queues, cores, alive, nameFormat) :
+                        new LimitedThreadPool().getExecutor(threads, queues, cores, nameFormat));
     }
 
     public String getThreadPool() {
@@ -127,5 +136,9 @@ public class CorgiExecutorService implements ThreadPool {
 
     public int getAlive() {
         return alive;
+    }
+
+    public String getNameFormat() {
+        return nameFormat;
     }
 }

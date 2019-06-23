@@ -16,11 +16,13 @@
 package com.github.registry.corgi.server.core;
 
 import com.github.registry.corgi.server.Constants;
+import com.github.registry.corgi.server.common.threadpool.CorgiExecutorService;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Zookeeper相关命令接口
@@ -34,6 +36,13 @@ public interface ZookeeperCommands {
      * 每个节点都会由一个全局TreeCache来保证一个时序正确、最终一致的事件流
      */
     Map<String, TreeCache> treeCacheMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+
+    /**
+     * TreeCache的Listener监听器线程组
+     */
+    ExecutorService executorService = new CorgiExecutorService.Builder(Constants.DEFAULT_THREADS,
+            Constants.DEFAULT_QUEUES, Constants.DEFAULT_THREADPOOL).nameFormat("corgi-listener-%d")
+            .builder().getExecutor();
 
     /**
      * 创建持久节点
