@@ -40,10 +40,21 @@ public class CorgiCommandsTemplate implements CorgiCommands {
      */
     private CorgiFramework.SerializationType serialization;
     private final int redirections;
+    private boolean isBatch;
+    private int pullSize;
+    private int pullTimeOut;
 
     protected CorgiCommandsTemplate(CorgiFramework.SerializationType serialization, int redirections) {
+        this(serialization, redirections, false, 0, 0);
+    }
+
+    protected CorgiCommandsTemplate(CorgiFramework.SerializationType serialization, int redirections,
+                                    boolean isBatch, int pullSize, int pullTimeOut) {
         this.serialization = serialization;
         this.redirections = redirections;
+        this.isBatch = isBatch;
+        this.pullSize = pullSize;
+        this.pullTimeOut = pullTimeOut;
     }
 
     private <T> T run(CheckCallBack<T> callBack, String... params) {//TODO 这里的设计稍微复杂了点，后续调整
@@ -84,8 +95,11 @@ public class CorgiCommandsTemplate implements CorgiCommands {
 
     @Override
     public String register(String persistentNode, String ephemeralNode) {
+        TransferBo transferBo = new TransferBo();
+        transferBo.setPersistentNode(persistentNode);
+        transferBo.setEphemeralNode(ephemeralNode);
         return run(() -> {
-            final String RESULT = runWithRetries(redirections, new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder(),
+            final String RESULT = runWithRetries(redirections, transferBo,
                     assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.REGISTER_TYPE), null).getResult();
             //判断命令是否执行成功,命令执行成功才执行后续的断线回调
             if (RESULT.equals(Constants.REQUEST_RESULT)) {
@@ -103,14 +117,23 @@ public class CorgiCommandsTemplate implements CorgiCommands {
 
     @Override
     public String unRegister(String persistentNode, String ephemeralNode) {
-        return run(() -> runWithRetries(redirections, new TransferBo.Builder(persistentNode).ephemeralNode(ephemeralNode).builder(),
-                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.UNREGISTER_TYPE), null).getResult(), persistentNode, ephemeralNode);
+        TransferBo transferBo = new TransferBo();
+        transferBo.setPersistentNode(persistentNode);
+        transferBo.setEphemeralNode(ephemeralNode);
+        return run(() -> runWithRetries(redirections, transferBo,
+                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.UNREGISTER_TYPE), null).getResult(),
+                persistentNode, ephemeralNode);
     }
 
     @Override
     public NodeBo subscribe(String persistentNode) {
+        TransferBo transferBo = new TransferBo();
+        transferBo.setPersistentNode(persistentNode);
+        transferBo.setBatch(isBatch);
+        transferBo.setPullSize(pullSize);
+        transferBo.setPullTimeOut(pullTimeOut);
         return run(() -> {
-            TransferBo.Content content = runWithRetries(redirections, new TransferBo.Builder(persistentNode).builder(),
+            TransferBo.Content content = runWithRetries(redirections, transferBo,
                     assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null);
             //判断命令是否执行成功,只有执行成功才返回结果集
             if (content.getResult().equals(Constants.REQUEST_RESULT)) {

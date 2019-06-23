@@ -15,6 +15,7 @@
 // */
 //package com.github.test.registry.corgi.client;
 //
+//import com.github.registry.corgi.client.CorgiCommands;
 //import com.github.registry.corgi.client.CorgiFramework;
 //import com.github.registry.corgi.client.HostAndPort;
 //import org.junit.Test;
@@ -23,7 +24,7 @@
 //
 //import java.io.IOException;
 //import java.util.UUID;
-//import java.util.concurrent.TimeUnit;
+//import java.util.concurrent.atomic.AtomicInteger;
 //
 ///**
 // * @author gao_xianglong@sina.com
@@ -35,33 +36,28 @@
 //
 //    @Test
 //    public void testConnection() {
+//        AtomicInteger num = new AtomicInteger();
 //        CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376)).
-//                serialization(CorgiFramework.SerializationType.FST).builder().init();
-//        log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
-//                UUID.randomUUID().toString()));
-//        log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService2/providers",
-//                UUID.randomUUID().toString()));
-////        while (true) {
-////            try {
-////                log.info(framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers").toString());
-////                log.info(framework.subscribe("/dubbo/com.gxl.test.service.user.UserService2/providers").toString());
-////            } catch (Exception e) {
-////                //e.printStackTrace();
-////            }
-////        }
-//
-//        log.info(framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers").toString());
-//        log.info(framework.subscribe("/dubbo/com.gxl.test.service.user.UserService2/providers").toString());
-//        //log.info(framework.subscribe("dubbo/com.gxl.test.service.user.UserService/configurators").toString());
-/////dubbo/com.gxl.test.service.user.UserService/configurators
+//                serialization(CorgiFramework.SerializationType.FST).isBatch(true).pullTimeOut(5000).pullSize(10).builder().init();
+//        for (int i = 0; i < 20; i++) {
+//            log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
+//                    String.valueOf(num.incrementAndGet())));
+//        }
+//        while (true) {
+//            try {
+//                CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers");
+//                if (null != nodeBo) {
+//                    log.info(nodeBo.toString());
+//                }
+//            } catch (Exception e) {
+//                log.error("{}", e);
+//            }
+//        }
 ////        try {
 ////            System.in.read();
 ////        } catch (IOException e) {
 ////            e.printStackTrace();
 ////        }
-//
-//
-//        //log.info("result:{}",framework.unRegister("/dubbo/com.gxl.test.service.user.UserService/providers","4ac32d53-2afe-4ff1-a22e-43ed85b862d4"));
 //        //framework.close();
 //    }
 //}

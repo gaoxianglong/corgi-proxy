@@ -1,0 +1,1 @@
+[2019-06-23 18:17:52 967 INFO ] com.github.registry.corgi.test.utils.SerializationTest - TransferBo{persistentNode='dubbo/service', ephemeralNode='null', pullSize=0, pullTimeOut=0, isBatch=true, content=null}

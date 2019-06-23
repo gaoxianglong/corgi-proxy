@@ -47,7 +47,10 @@ public class CorgiRegistry extends FailbackRegistry {
      * 全量服务地址列表
      */
     private final List<URL> urls = new Vector<>(com.github.registry.corgi.client.Constants.INITIAL_CAPACITY);
-    private int redirections = com.github.registry.corgi.client.Constants.REDIRECTIONS;
+    private int redirections;
+    private int pullTimeOut;
+    private int pullSize;
+    private Boolean isBatch;
     private CorgiFramework framework;
     private String root;
     private Logger log = LoggerFactory.getLogger(CorgiRegistry.class);
@@ -59,6 +62,10 @@ public class CorgiRegistry extends FailbackRegistry {
             group = Constants.PATH_SEPARATOR + group;
         }
         this.root = group;
+        redirections = url.getParameter("redirections", com.github.registry.corgi.client.Constants.REDIRECTIONS);
+        pullTimeOut = url.getParameter("pullTimeOut", com.github.registry.corgi.client.Constants.DEFAULT_PULL_TIMEOUT);
+        pullSize = url.getParameter("pullSize", com.github.registry.corgi.client.Constants.DEFAULT_PULL_SIZE);
+        isBatch = url.getParameter("isBatch", com.github.registry.corgi.client.Constants.DEFAULT_ISBATCH);
         init(url.getBackupAddress());
     }
 
@@ -69,7 +76,7 @@ public class CorgiRegistry extends FailbackRegistry {
         if (StringUtils.isEmpty(address)) {
             return;
         }
-        List<HostAndPort> hostAndPorts = new Vector<>(32);
+        List<HostAndPort> hostAndPorts = new Vector<>(com.github.registry.corgi.client.Constants.INITIAL_CAPACITY);
         Stream.of(address.split("\\,")).forEach(x -> {
             String[] temp = x.split("\\:");
             final String HOST = temp[0];
@@ -79,7 +86,7 @@ public class CorgiRegistry extends FailbackRegistry {
         if (!hostAndPorts.isEmpty()) {
             serializationType = CorgiFramework.SerializationType.FST;
             framework = new CorgiFramework.Builder(hostAndPorts).serialization(serializationType).
-                    redirections(redirections).builder().init();
+                    redirections(redirections).isBatch(isBatch).pullSize(pullSize).pullTimeOut(pullTimeOut).builder().init();
         }
     }
 
@@ -159,6 +166,9 @@ public class CorgiRegistry extends FailbackRegistry {
                 Executors.newSingleThreadScheduledExecutor().execute(() -> {
                     while (true) {
                         CorgiCommands.NodeBo nodeBo_ = framework.subscribe(path);
+                        if (null == nodeBo_) {
+                            continue;
+                        }
                         String[] plusNodes_ = nodeBo_.getPlusNodes();
                         if (null != plusNodes_) {
                             Stream.of(plusNodes_).forEach(x -> {

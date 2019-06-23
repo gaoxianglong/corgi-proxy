@@ -21,7 +21,12 @@
     <bean id="serviceB"
           class="com.github.registry.corgi.service.ServiceBImpl"/>
     <dubbo:registry protocol="corgi" id="corgi"
-                    address="${corgiHost}"/>
+                    address="${corgiHost}">
+        <dubbo:parameter key="isBatch" value="true"/>
+        <dubbo:parameter key="pullTimeOut" value="5000"/>
+        <dubbo:parameter key="pullSize" value="10"/>
+        <dubbo:parameter key="redirections" value="2"/>
+    </dubbo:registry>
     <dubbo:reference id="serviceC"
                      interface="com.github.registry.corgi.service.ServiceC" timeout="1000"
                      cluster="failfast"/>

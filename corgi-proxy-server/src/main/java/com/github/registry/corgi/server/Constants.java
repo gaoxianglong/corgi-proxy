@@ -81,4 +81,7 @@ public class Constants {
 
     public final static int CAPACITY = 1000;
     public final static int INITIAL_CAPACITY = 32;
+
+    public final static String PLUS_EVENT = "+";
+    public final static String REDUCES_EVENT = "-";
 }

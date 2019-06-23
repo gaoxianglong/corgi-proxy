@@ -51,4 +51,7 @@ public class Constants {
     public final static String REQUEST_RESULT = "ok";
     public final static int CAPACITY = 1000;
     public final static int INITIAL_CAPACITY = 32;
+    public final static int DEFAULT_PULL_SIZE = 1;
+    public final static int DEFAULT_PULL_TIMEOUT = 10000;
+    public final static Boolean DEFAULT_ISBATCH = false;
 }

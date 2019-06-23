@@ -50,16 +50,34 @@ public class CorgiFramework implements CorgiCommands {
      * 重试次数,缺省2次
      */
     private int redirections;
+    /**
+     * 每次批量拉取的数量,缺省为1,不开启批量此参数无意义
+     */
+    private int pullSize;
+    /**
+     * 拉取超时时间,缺省为10000ms,不开启批量此参数无意义
+     */
+    private int pullTimeOut;
+    /**
+     * 批量拉取开关,缺省关闭
+     */
+    private boolean isBatch;
 
     private CorgiFramework(Builder builder) {
         hostAndPorts.addAll(builder.hostAndPorts);
         this.serialization = builder.serialization;
         this.redirections = builder.redirections;
+        this.pullSize = builder.pullSize;
+        this.pullTimeOut = builder.pullTimeOut;
+        this.isBatch = builder.isBatch;
     }
 
     public static class Builder {
+        private int pullSize = Constants.DEFAULT_PULL_SIZE;
+        private int pullTimeOut = Constants.DEFAULT_PULL_TIMEOUT;
         private int redirections = Constants.REDIRECTIONS;
         private List<HostAndPort> hostAndPorts;
+        private boolean isBatch;
         private SerializationType serialization = SerializationType.FST;
 
         public Builder(HostAndPort hostAndPort) {
@@ -80,6 +98,21 @@ public class CorgiFramework implements CorgiCommands {
             return this;
         }
 
+        public Builder pullSize(int pullSize) {
+            this.pullSize = pullSize;
+            return this;
+        }
+
+        public Builder isBatch(boolean isBatch) {
+            this.isBatch = isBatch;
+            return this;
+        }
+
+        public Builder pullTimeOut(int pullTimeOut) {
+            this.pullTimeOut = pullTimeOut;
+            return this;
+        }
+
         public CorgiFramework builder() {
             return new CorgiFramework(this);
         }
@@ -87,8 +120,11 @@ public class CorgiFramework implements CorgiCommands {
         @Override
         public String toString() {
             return "Builder{" +
-                    "redirections=" + redirections +
+                    "pullSize=" + pullSize +
+                    ", pullTimeOut=" + pullTimeOut +
+                    ", redirections=" + redirections +
                     ", hostAndPorts=" + hostAndPorts +
+                    ", isBatch=" + isBatch +
                     ", serialization=" + serialization +
                     '}';
         }
@@ -116,7 +152,9 @@ public class CorgiFramework implements CorgiCommands {
 
     @Override
     public NodeBo subscribe(String persistentNode) {
-        return new CorgiCommandsTemplate(serialization, redirections).subscribe(persistentNode);
+        CorgiCommandsTemplate template = isBatch ? new CorgiCommandsTemplate(serialization, redirections, isBatch, pullSize, pullTimeOut)
+                : new CorgiCommandsTemplate(serialization, redirections);
+        return template.subscribe(persistentNode);
     }
 
     public static enum SerializationType {

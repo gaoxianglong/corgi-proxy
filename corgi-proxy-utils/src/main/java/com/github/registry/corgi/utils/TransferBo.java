@@ -36,41 +36,23 @@ public class TransferBo implements Serializable {
      */
     private String ephemeralNode;
     /**
+     * 每次增量拉取的数量
+     */
+    private int pullSize;
+    /**
+     * 拉取超时时间
+     */
+    private int pullTimeOut;
+    /**
+     * 批量拉取开关
+     */
+    private Boolean isBatch;
+    /**
      * response结果集
      */
     private Content content;
 
-    private TransferBo(Builder builder) {
-        this.persistentNode = builder.persistentNode;
-        this.ephemeralNode = builder.ephemeralNode;
-        this.content = builder.content;
-    }
-
-    public static class Builder {
-        private String persistentNode;
-        private String ephemeralNode;
-        private Content content;
-
-        public Builder(String persistentNode) {
-            this.persistentNode = persistentNode;
-        }
-
-        public Builder ephemeralNode(String ephemeralNode) {
-            this.ephemeralNode = ephemeralNode;
-            return this;
-        }
-
-        public Builder content(Content content) {
-            this.content = content;
-            return this;
-        }
-
-        public TransferBo builder() {
-            return new TransferBo(this);
-        }
-    }
-
-    public static class Content {
+    public static class Content implements Serializable {
         /**
          * 响应结果，操作成功(ok)或者失败(fail:异常),缺省ok
          */
@@ -122,8 +104,40 @@ public class TransferBo implements Serializable {
         return persistentNode;
     }
 
+    public void setPersistentNode(String persistentNode) {
+        this.persistentNode = persistentNode;
+    }
+
     public String getEphemeralNode() {
         return ephemeralNode;
+    }
+
+    public void setEphemeralNode(String ephemeralNode) {
+        this.ephemeralNode = ephemeralNode;
+    }
+
+    public int getPullSize() {
+        return pullSize;
+    }
+
+    public void setPullSize(int pullSize) {
+        this.pullSize = pullSize;
+    }
+
+    public int getPullTimeOut() {
+        return pullTimeOut;
+    }
+
+    public void setPullTimeOut(int pullTimeOut) {
+        this.pullTimeOut = pullTimeOut;
+    }
+
+    public Boolean isBatch() {
+        return isBatch;
+    }
+
+    public void setBatch(Boolean batch) {
+        isBatch = batch;
     }
 
     public Content getContent() {
@@ -139,7 +153,10 @@ public class TransferBo implements Serializable {
         return "TransferBo{" +
                 "persistentNode='" + persistentNode + '\'' +
                 ", ephemeralNode='" + ephemeralNode + '\'' +
-                ", content=" + content.toString() +
+                ", pullSize=" + pullSize +
+                ", pullTimeOut=" + pullTimeOut +
+                ", isBatch=" + isBatch +
+                ", content=" + content +
                 '}';
     }
 }

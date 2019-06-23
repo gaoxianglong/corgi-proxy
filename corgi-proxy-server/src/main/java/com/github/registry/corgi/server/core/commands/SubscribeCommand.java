@@ -20,12 +20,16 @@ import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.server.exceptions.CommandException;
 import com.github.registry.corgi.utils.CorgiProtocol;
 import com.github.registry.corgi.utils.TransferBo;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 订阅命令处理类，用户Consumer订阅寻址使用
@@ -52,6 +56,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
     @Override
     public TransferBo.Content run(TransferBo transferBo)
             throws CommandException {
+        final int index = 1;
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
         TransferBo.Content content = new TransferBo.Content();
         final String PATH = transferBo.getPersistentNode();
@@ -71,6 +76,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
 //                    }
 //                });
                 LinkedBlockingQueue<String> finalQueue = queue;
+                //watch,检测到事件流后触发后回调
                 connectionHandler.watch(PATH, msg -> {
                     try {
                         finalQueue.put(msg);
@@ -87,18 +93,56 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                     queue.poll();//消费去重,避免全量拉取数据后，再重复消费队列中的数据
                 }
             } else {
-                final String temp = queue.take();//阻塞等待,直至有具体的事件发生
-                String[] result = new String[]{temp.substring(1)};
-                if (temp.startsWith("+")) {
-                    content.setPlusNodes(result);
-                } else if (temp.startsWith("-")) {
-                    content.setReducesNodes(result);
+                //如果开启了批量拉取，超过超时时间则返回，不会一直阻塞
+                if (transferBo.isBatch()) {
+                    final int pullSize = transferBo.getPullSize();
+                    final int timeOut = transferBo.getPullTimeOut() / pullSize;//假设每次拉取10条，总超时时间为10s，那么单条消息的超时时间为1s
+                    List<String> plusNodesList = null;
+                    List<String> reducesNodesList = null;
+                    for (int i = 0; i < pullSize; i++) {
+                        final String temp = queue.poll(timeOut, TimeUnit.MILLISECONDS);
+                        if (StringUtils.isEmpty(temp)) {
+                            continue;
+                        }
+                        if (temp.startsWith(Constants.PLUS_EVENT)) {
+                            if (null == plusNodesList) {
+                                plusNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
+                            }
+                            plusNodesList.add(temp.substring(index));
+                        } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
+                            if (null == reducesNodesList) {
+                                reducesNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
+                            }
+                            reducesNodesList.add(temp.substring(index));
+                        }
+                    }
+                    addNodes(content, null != plusNodesList ? plusNodesList.toArray(new String[plusNodesList.size()]) : null,
+                            null != reducesNodesList ? reducesNodesList.toArray(new String[reducesNodesList.size()]) : null);
+                } else {
+                    final String temp = queue.take();//阻塞等待,直至有具体的事件发生
+                    final String[] nodes = new String[]{temp.substring(index)};
+                    if (temp.startsWith(Constants.PLUS_EVENT)) {
+                        addNodes(content, nodes, null);
+                    } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
+                        addNodes(content, null, nodes);
+                    }
                 }
             }
         } catch (Throwable e) {
-            e.printStackTrace();
             throw new CommandException("Subscribe Command execution failed!!!", e);
         }
         return content;
+    }
+
+    /**
+     * 添加上/下线事件流
+     *
+     * @param content
+     * @param plusNodes
+     * @param reducesNodes
+     */
+    private void addNodes(TransferBo.Content content, String[] plusNodes, String[] reducesNodes) {
+        content.setPlusNodes(plusNodes);
+        content.setReducesNodes(reducesNodes);
     }
 }
