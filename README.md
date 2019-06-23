@@ -34,7 +34,11 @@ Executors.newSingleThreadScheduledExecutor().execute(() -> {
 目前corgi-proxy暂未提交到Maven中央仓库，请自行编译打包；更多使用案例，参考corgi-proxy-demo。
 
 ## corgi-proxy特性&要求
-- `低侵入性`：只需引入corgi-proxy构件，添加配置即可
-- `使用简单`：低成本，如果是基于dubbo，缺省提供有基于SPI扩展的注册中心实现
-- `高性能`：增量数据拉取，避免惊群效应时所带来的瞬时流量将Registry集群的网卡打满
+- `低侵入性`：只需引入corgi-proxy构件，添加相关配置即可
+- `简单易用`：低成本，如果是基于dubbo，缺省提供有基于SPI扩展的注册中心实现
+- `高伸缩性`：corgi-proxy集群中各个节点之间无状态，可随意伸缩
+- `增量拉取`：服务发现场景下可避免惊群效应时所带来的瞬时流量将Registry集群的网卡打满
+- `高可靠性`：封装和通过Apache Curator来保证一个时序正确、最终一致的事件流
 - `版本要求`：Java8以上，不支持低版本JDK
+
+## 整体架构
