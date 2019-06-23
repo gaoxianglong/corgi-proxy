@@ -22,7 +22,7 @@ corgi=com.github.registry.corgi.CorgiRegistryFactory
 CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376))//绑定host和port
         .redirections(2)//指定重试次数
         .serialization(CorgiFramework.SerializationType.FST)//指定序列化协议
-        .isBatch(true)//批量拉取开关
+        .isBatch(true)//批量拉取开关,关闭情况下，每次只增量拉一条
         .pullSize(10)//指定单次拉取数量
         .pullTimeOut(10000)//拉取超时时间，单位ms
         .builder()
@@ -51,3 +51,9 @@ Executors.newSingleThreadScheduledExecutor().execute(() -> {
 应用无需直连Zookeeper，而是通过corgi-proxy中间件来完成服务的注册/发现，极大程度上减少了客户端连接数。
 <div align=center><img src="https://github.com/gaoxianglong/corgi-proxy/blob/master/resources/imgs/architecture.jpeg"/></div>
 corgi-proxy内部通过依赖Apache Curator的TreeCache来实现数据的增量拉取策略，换句话说，corgi-proxy内部会维系一份内存快照数据，当目标节点发生任何变化时，通过比对内存快照中的元信息（zxid）来明确具体的上/下线事件，然后再将具体的更新事件写入到与每个corgi-proxy客户端对应的阻塞队列中，等待其主动增量拉取消费（首次拉取为全量）。
+
+## 未来
+0.2-SNAPSHOT版本规划:
+- 完善监控功能
+- 支持重复拉取更新事件，避免corgi-proxy返回失败时导致事件丢失
+- 更广的单元测试覆盖率
