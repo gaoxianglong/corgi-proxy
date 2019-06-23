@@ -19,14 +19,15 @@ corgi=com.github.registry.corgi.CorgiRegistryFactory
 #### 非dubbo项目
 - 原生客户端API的使用：
 ```java
-CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort(hostName, port))//绑定host和port
-        .redirections(redirections)//指定重试次数
+CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376))//绑定host和port
+        .redirections(2)//指定重试次数
         .serialization(CorgiFramework.SerializationType.FST)//指定序列化协议
-        .isBatch(isBatch)//是否开启批量拉取开关
-        .pullSize(pullSize)//批量拉取数量
-        .pullTimeOut(pullTimeOut)//拉取超时时间，单位ms
+        .isBatch(true)//批量拉取开关
+        .pullSize(10)//指定单次拉取数量
+        .pullTimeOut(10000)//拉取超时时间，单位ms
         .builder()
         .init();//相关初始化
+        
 framework.register("/dubbo/service", "127.0.0.1:20890");//服务注册
 framework.subscribe("/dubbo/service");//订阅
 framework.unRegister("/dubbo/service", "127.0.0.1:20890");//取消注册
