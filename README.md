@@ -38,7 +38,8 @@ Executors.newSingleThreadScheduledExecutor().execute(() -> {
 - `简单易用`：低成本，如果是基于dubbo，缺省提供有基于SPI扩展的注册中心实现
 - `高伸缩性`：corgi-proxy集群中各个节点之间无状态，可随意伸缩
 - `增量拉取`：服务发现场景下可避免惊群效应时所带来的瞬时流量将Registry集群的网卡打满
-- `高可靠性`：封装和通过Apache Curator来保证一个时序正确、最终一致的事件流
+- `高可靠性`：封装和依赖Apache Curator的TreeCache来保证一个时序正确、最终一致的事件流
 - `版本要求`：Java8以上，不支持低版本JDK
 
 ## 整体架构
+应用无需直连Zookeeper，而是通过corgi-proxy中间件来完成服务的注册/发现，极大程度上缩减了Zookeeper的客户端连接数。corgi-proxy内部通过依赖Apache Curator的TreeCache来实现数据的增量拉取策略，换句话说，corgi-proxy内部会维系一份内存快照数据，当目标节点发生任何变化时，通过比对内存快照中的元信息（zxid）来明确具体的上/下线事件，然后将具体的更新事件写入到与每个corgi-proxy客户端对应的阻塞队列中，等待其主动增量拉取消费（首次拉取为全量）。
