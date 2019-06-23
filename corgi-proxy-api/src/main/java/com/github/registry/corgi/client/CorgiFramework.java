@@ -77,7 +77,7 @@ public class CorgiFramework implements CorgiCommands {
         private int pullTimeOut = Constants.DEFAULT_PULL_TIMEOUT;
         private int redirections = Constants.REDIRECTIONS;
         private List<HostAndPort> hostAndPorts;
-        private boolean isBatch;
+        private boolean isBatch = Constants.DEFAULT_ISBATCH;
         private SerializationType serialization = SerializationType.FST;
 
         public Builder(HostAndPort hostAndPort) {

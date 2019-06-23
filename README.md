@@ -22,6 +22,9 @@ corgi=com.github.registry.corgi.CorgiRegistryFactory
 CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort(hostName, port))//绑定host和port
         .redirections(redirections)//指定重试次数
         .serialization(CorgiFramework.SerializationType.FST)//指定序列化协议
+        .isBatch(isBatch)//是否开启批量拉取开关
+        .pullSize(pullSize)//批量拉取数量
+        .pullTimeOut(pullTimeOut)//拉取超时时间，单位ms
         .builder()
         .init();//相关初始化
 framework.register("/dubbo/service", "127.0.0.1:20890");//服务注册
