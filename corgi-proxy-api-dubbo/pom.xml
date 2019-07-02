@@ -5,14 +5,14 @@
     <parent>
         <artifactId>corgi-proxy</artifactId>
         <groupId>com.github</groupId>
-        <version>0.1-SNAPSHOT</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github</groupId>
     <artifactId>corgi-proxy-api-dubbo</artifactId>
     <properties>
         <java-version>1.8</java-version>
-        <corgi-version>0.1-SNAPSHOT</corgi-version>
+        <corgi-version>0.2-SNAPSHOT</corgi-version>
         <dubbo-version>2.5.3</dubbo-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
