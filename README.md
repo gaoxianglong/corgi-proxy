@@ -55,5 +55,5 @@ corgi-proxy内部通过依赖Apache Curator的TreeCache来实现数据的增量�
 ## 未来
 0.2-SNAPSHOT版本规划:
 - 完善监控功能
-- 支持重复拉取更新事件，避免corgi-proxy返回失败时导致事件丢失
+- 支持重复拉取更新事件流，避免corgi-proxy返回失败、或者client更新失败时导致事件丢失
 - 更广的单元测试覆盖率
