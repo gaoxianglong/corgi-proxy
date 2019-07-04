@@ -54,6 +54,7 @@ public class PropertiesConfiguration {
             });
             log.info("Corgi configuration file was loaded successfully(\n{})", strBuffer.toString());
             reset(parameters);
+            log.info(parameters.toString());
         } catch (Throwable e) {
             throw new PropertiesException("Failed to load configuration file!!!", e);
         }
@@ -74,7 +75,10 @@ public class PropertiesConfiguration {
             final String FILED_NAME = key.toString();
             final String FIELD_VALUE = value.toString();
             try {
-                field = target.getClass().getDeclaredField(FILED_NAME);
+                int index = FILED_NAME.lastIndexOf(".");
+                if (-1 != index) {
+                    field = target.getClass().getDeclaredField(FILED_NAME.substring(++index));
+                }
             } catch (NoSuchFieldException e) {//如果找不到的字段则不赋值
                 log.debug("The target field({}) could not be found", FILED_NAME);
             }
