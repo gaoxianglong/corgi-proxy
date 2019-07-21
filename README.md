@@ -7,17 +7,6 @@
 Zookeeper并不适合作为大规模服务化场景下的Registry，其写操作存在单点问题，不可扩展，由于采用的原子广播协议（>=N/2+1），集群节点越多，写入效率就越低，表象就是应用启动异常缓慢；其次服务节点的任何变化，都会导致消费者每次都全量拉取一个服务接口下的所有地址列表，大促前后服务的扩容/缩容操作所带来的瞬时流量容易瞬间就把Registry集群的的网卡打满。**因此我们需要一个最终一致性、增量数据拉取，且去中心化的Registry解决方案，corgi-proxy由此诞生**。
 
 ## corgi-proxy使用
-#### 编译&启动
-```java
-cd /corgi-proxy
-mvn -DskipTests clean install -U
-cd /corgi-proxy/corgi-proxy-server/target
-tar -zxvf /corgi-proxy-server-0.2-SNAPSHOT-assembly.tar.gz 
-#启动corgi-server
-sh /bin/start.sh
-```
-在启动corgi-server之前，首先需要配置好环境变量CORGI_HOME。
-
 #### dubbo项目
 - corgi-proxy基于SPI扩展了dubbo的注册中心:
 ```java
