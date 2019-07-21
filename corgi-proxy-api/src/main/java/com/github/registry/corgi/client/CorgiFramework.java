@@ -43,6 +43,10 @@ public class CorgiFramework implements CorgiCommands {
     private volatile static CorgiConnectionHandler connectionHandler;
     private volatile static List<HostAndPort> hostAndPorts = new Vector<>(Constants.INITIAL_CAPACITY);
     /**
+     * 客户端位点
+     */
+    private volatile static Map<String, Integer> indexMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    /**
      * 系列化类型，缺省为FST
      */
     private SerializationType serialization;
@@ -197,5 +201,13 @@ public class CorgiFramework implements CorgiCommands {
 
     public static List<HostAndPort> getHostAndPorts() {
         return hostAndPorts;
+    }
+
+    public static Map<String, Integer> getIndexMap() {
+        return indexMap;
+    }
+
+    public static void setIndexMap(Map<String, Integer> indexMap) {
+        CorgiFramework.indexMap = indexMap;
     }
 }

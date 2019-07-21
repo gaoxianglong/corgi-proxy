@@ -45,28 +45,30 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class CokeyHandler extends ChannelInboundHandlerAdapter {
     private ZookeeperConnectionHandler connectionHandler;
     private ExecutorService executor;
-    /**
-     * 每一个Channel都拥有独立的LinkedBlockingQueue,用于事件流的存储和消费
-     */
-    private Map<String, LinkedBlockingQueue<String>> queues = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    private Map<String, Vector<String>> nodes;
     /**
      * 记录一个Channel上注册过的所有节点，断开连接时全部都需要取消注册
      */
     private List<String> registerPaths = new Vector<>(Constants.INITIAL_CAPACITY);
+    /**
+     * 记录一个Channel上订阅过的所有节点
+     */
+    private List<String> subscribePaths = new Vector<>(Constants.INITIAL_CAPACITY);
     private Logger log = LoggerFactory.getLogger("");
 
-    public CokeyHandler(ZookeeperConnectionHandler connectionHandler, ExecutorService executor) {
+    public CokeyHandler(ZookeeperConnectionHandler connectionHandler, ExecutorService executor,
+                        Map<String, Vector<String>> nodes) {
         this.connectionHandler = connectionHandler;
         this.executor = executor;
+        this.nodes = nodes;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         CorgiProtocol protocol = (CorgiProtocol) msg;
-        TransferBo transferBo = CorgiSerializationUtil.deserialize(protocol.getFlag(), protocol.getContent());
         //为了避免I/O线程阻塞，客户端请求会派发给具体的业务线程池处理，I/O线程仅仅只需负责连接的接收/断开、入站/出站事件等
         CompletableFuture<CorgiProtocol> future = CompletableFuture.supplyAsync(() -> {
-            return new CorgiCommandHandler(protocol, connectionHandler, queues, registerPaths).execute();
+            return new CorgiCommandHandler(protocol, connectionHandler, nodes, registerPaths, subscribePaths).execute();
         }, executor);
         future.exceptionally(x -> {
             log.error("error", x);
@@ -114,5 +116,8 @@ public class CokeyHandler extends ChannelInboundHandlerAdapter {
                 }
             });
         });
+        if (!subscribePaths.isEmpty()) {
+            subscribePaths.clear();
+        }
     }
 }

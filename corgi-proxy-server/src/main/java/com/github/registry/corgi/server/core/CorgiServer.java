@@ -33,6 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +55,10 @@ public class CorgiServer {
     private Parameters parameters;
     private ZookeeperConnectionHandler connectionHandler;
     private long beginTime;
+    /**
+     * 记录服务的上/下线事件流
+     */
+    private static volatile Map<String, Vector<String>> nodes = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
     private static Logger log = LoggerFactory.getLogger("");
 
     public CorgiServer(long beginTime, Parameters parameters, ExecutorService executor, ZookeeperConnectionHandler connectionHandler) {
@@ -99,7 +106,7 @@ public class CorgiServer {
                                     Constants.ALL_IDLE_TIME, TimeUnit.SECONDS));//添加IdleStateHandler
                             ch.pipeline().addLast("acceptorIdleStateTrigger", new AcceptorIdleStateTrigger());//添加读空闲超时处理的ChannelHandler
                             ch.pipeline().addLast("heartbeatHandler", new HeartbeatHandler());//添加心跳处理的ChannelHandler
-                            ch.pipeline().addLast("cokeyHandler", new CokeyHandler(connectionHandler, executor));//添加核心命令处理的ChannelHandler
+                            ch.pipeline().addLast("cokeyHandler", new CokeyHandler(connectionHandler, executor, nodes));//添加核心命令处理的ChannelHandler
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, backLog)//Socket参数,服务端接受连接的队列长度,如果队列已满,客户端连接将被拒绝

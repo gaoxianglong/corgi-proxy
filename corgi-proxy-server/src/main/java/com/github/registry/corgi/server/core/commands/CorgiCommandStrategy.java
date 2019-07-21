@@ -15,10 +15,18 @@
  */
 package com.github.registry.corgi.server.core.commands;
 
+import com.github.registry.corgi.server.Constants;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.server.exceptions.CommandException;
 import com.github.registry.corgi.utils.CorgiProtocol;
 import com.github.registry.corgi.utils.TransferBo;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Corgi命令策略类
@@ -28,6 +36,9 @@ import com.github.registry.corgi.utils.TransferBo;
  * @date created in 2019-06-19 17:23
  */
 public interface CorgiCommandStrategy<T> {
+    Map<String, ReentrantLock> lockMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    Map<String, Condition> conditionMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+
     /**
      * 命令执行
      *

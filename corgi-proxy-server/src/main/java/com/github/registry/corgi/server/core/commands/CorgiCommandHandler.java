@@ -21,6 +21,7 @@ import com.github.registry.corgi.utils.CorgiProtocol;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -33,16 +34,19 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class CorgiCommandHandler implements CorgiCommandStrategy {
     private CorgiProtocol protocol;
     private ZookeeperConnectionHandler connectionHandler;
-    private Map<String, LinkedBlockingQueue<String>> queues;
+    private Map<String, Vector<String>> nodes;
     private List<String> registerPaths;
+    private List<String> subscribePaths;
 
     public CorgiCommandHandler(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler,
-                               Map<String, LinkedBlockingQueue<String>> queues, List<String> registerPaths) {
+                               Map<String, Vector<String>> nodes, List<String> registerPaths, List<String> subscribePaths) {
         this.protocol = protocol;
         this.connectionHandler = connectionHandler;
-        this.queues = queues;
+        this.nodes = nodes;
         this.registerPaths = registerPaths;
+        this.subscribePaths = subscribePaths;
     }
+
 
     /**
      * 根据具体的命令类型选择具体的命令执行
@@ -60,7 +64,7 @@ public class CorgiCommandHandler implements CorgiCommandStrategy {
                 result = new UnregisterCommand(protocol, connectionHandler).execute();
                 break;
             case Constants.SUBSCRIBE_TYPE:
-                result = new SubscribeCommand(protocol, connectionHandler, queues).execute();
+                result = new SubscribeCommand(protocol, connectionHandler, nodes, subscribePaths).execute();
         }
         return result;
     }

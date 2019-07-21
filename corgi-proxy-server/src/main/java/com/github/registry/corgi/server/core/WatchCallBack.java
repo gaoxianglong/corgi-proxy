@@ -28,5 +28,5 @@ public interface WatchCallBack extends CorgiCallBack {
      *
      * @param path
      */
-    void execute(String path);
+    void execute(String path) throws InterruptedException;
 }

@@ -40,6 +40,10 @@ public class TransferBo implements Serializable {
      */
     private int pullSize;
     /**
+     * 客户端记录的拉取位点
+     */
+    private int index;
+    /**
      * 拉取超时时间
      */
     private int pullTimeOut;
@@ -65,6 +69,18 @@ public class TransferBo implements Serializable {
          * 删除节点
          */
         private String[] reducesNodes;
+        /**
+         * 第一次订阅时返回给客户端初始的位点
+         */
+        private int initIndex;
+
+        public int getInitIndex() {
+            return initIndex;
+        }
+
+        public void setInitIndex(int initIndex) {
+            this.initIndex = initIndex;
+        }
 
         public String getResult() {
             return result;
@@ -96,6 +112,7 @@ public class TransferBo implements Serializable {
                     "result='" + result + '\'' +
                     ", plusNodes=" + Arrays.toString(plusNodes) +
                     ", reducesNodes=" + Arrays.toString(reducesNodes) +
+                    ", initIndex=" + initIndex +
                     '}';
         }
     }
@@ -148,15 +165,24 @@ public class TransferBo implements Serializable {
         this.content = content;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
     @Override
     public String toString() {
         return "TransferBo{" +
                 "persistentNode='" + persistentNode + '\'' +
                 ", ephemeralNode='" + ephemeralNode + '\'' +
                 ", pullSize=" + pullSize +
+                ", index=" + index +
                 ", pullTimeOut=" + pullTimeOut +
                 ", isBatch=" + isBatch +
-                ", content=" + content +
+                ", content=" + content.toString() +
                 '}';
     }
 }

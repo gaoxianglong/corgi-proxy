@@ -24,10 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Zookeeper连接类
+ * Zookeeper会话连接类
  *
  * @author gao_xianglong@sina.com
- * @version 0.1-SNAPSHOT
+ * @version 0.2-SNAPSHOT
  * @date created in 2019-07-21 14:47
  */
 public class ZookeeperConnection {

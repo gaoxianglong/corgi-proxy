@@ -24,12 +24,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 订阅命令处理类，用户Consumer订阅寻址使用
@@ -39,7 +37,8 @@ import java.util.concurrent.TimeUnit;
  * @date created in 2019-06-19 17:32
  */
 public class SubscribeCommand extends CorgiCommandTemplate {
-    private Map<String, LinkedBlockingQueue<String>> queues;
+    private Map<String, Vector<String>> nodes;
+    private List<String> subscribePaths;
     private Logger log = LoggerFactory.getLogger("");
 
     protected SubscribeCommand(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler) {
@@ -47,60 +46,86 @@ public class SubscribeCommand extends CorgiCommandTemplate {
     }
 
     protected SubscribeCommand(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler,
-                               Map<String, LinkedBlockingQueue<String>> queues) {
+                               Map<String, Vector<String>> nodes, List<String> subscribePaths) {
         this(protocol, connectionHandler);
-        this.queues = queues;
+        this.nodes = nodes;
+        this.subscribePaths = subscribePaths;
 
     }
 
     @Override
     public TransferBo.Content run(TransferBo transferBo)
             throws CommandException {
-        final int index = 1;
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
         TransferBo.Content content = new TransferBo.Content();
         final String PATH = transferBo.getPersistentNode();
-        LinkedBlockingQueue<String> queue = queues.get(PATH);
+        final int INDEX = transferBo.getIndex();//corgi-client位点
+        int pullSize = transferBo.getPullSize();
+        Vector<String> node = nodes.get(PATH);
+        ReentrantLock lock = lockMap.get(PATH);
+        Condition condition = conditionMap.get(PATH);
         try {
-            if (null == queue) {
-                queue = new LinkedBlockingQueue(Constants.CAPACITY);
-                queues.put(PATH, queue);
-//                connectionHandler.watch(PATH, new CorgiCallBack() {
-//                    @Override
-//                    public void execute(String path) {
-//                        try {
-//                            queue.put(path);
-//                        } catch (InterruptedException e) {
-//                            log.error("Queue write failure!!!", e);
-//                        }
-//                    }
-//                });
-                LinkedBlockingQueue<String> finalQueue = queue;
-                //watch,检测到事件流后触发后回调
-                connectionHandler.watch(PATH, msg -> {
-                    try {
-                        finalQueue.put(msg);
-                    } catch (InterruptedException e) {
-                        log.error("Queue write failure!!!", e);
+            synchronized (nodes) {
+                if (null == node) {
+                    if (null == lock) {
+                        lock = new ReentrantLock();
+                        lockMap.put(PATH, lock);
                     }
-                });
+                    if (null == condition) {
+                        condition = lock.newCondition();
+                        conditionMap.put(PATH, condition);
+                    }
+                    node = new Vector<>(Constants.CAPACITY);
+                    nodes.put(PATH, node);
+                    Vector<String> finalNode = node;
+                    //watch,检测到事件流后触发后回调
+                    Condition finalCondition = condition;
+                    ReentrantLock finalLock = lock;
+                    connectionHandler.watch(PATH, event -> {
+                        finalLock.lockInterruptibly();
+                        try {
+                            finalNode.add(event);//记录变化的上/下线事件流
+                            finalCondition.signalAll();
+                            log.debug("event:{}", event);
+                        } finally {
+                            finalLock.unlock();
+                        }
+                    });
+                }
+            }
+            if (!subscribePaths.contains(PATH)) {
+                subscribePaths.add(PATH);
                 List<String> result = null;
                 do {
                     result = connectionHandler.getChildrensSnapshot(PATH); //如果是第一次订阅，则返回本地快照的全量数据
                 } while (result.isEmpty());
                 content.setPlusNodes(result.toArray(new String[result.size()]));
-                for (int i = 0; i < result.size(); i++) {
-                    queue.poll();//消费去重,避免全量拉取数据后，再重复消费队列中的数据
-                }
+                content.setInitIndex(node.size());//返回给客户端的初始位点,避免重复拉取
             } else {
                 //如果开启了批量拉取，超过超时时间则返回，不会一直阻塞
                 if (transferBo.isBatch()) {
-                    final int pullSize = transferBo.getPullSize();
-                    final int timeOut = transferBo.getPullTimeOut() / pullSize;//假设每次拉取10条，总超时时间为10s，那么单条消息的超时时间为1s
                     List<String> plusNodesList = null;
                     List<String> reducesNodesList = null;
+                    long nanos = TimeUnit.MILLISECONDS.toNanos(transferBo.getPullTimeOut());
+                    lock.lockInterruptibly();
+                    try {
+                        int nodeSize = 0;
+                        while ((nodeSize = node.size()) < (INDEX + pullSize - 1)) {//判断是否能够拉取到足够的数据
+                            if (nanos <= 0) {
+                                if (INDEX == nodeSize) {
+                                    break;
+                                } else {
+                                    //获取实际批量拉取的数量
+                                    pullSize = (nodeSize - INDEX) >= pullSize ? pullSize : nodeSize - INDEX;
+                                }
+                            }
+                            nanos = condition.awaitNanos(nanos);
+                        }
+                    } finally {
+                        lock.unlock();
+                    }
                     for (int i = 0; i < pullSize; i++) {
-                        final String temp = queue.poll(timeOut, TimeUnit.MILLISECONDS);
+                        final String temp = node.get(i);
                         if (StringUtils.isEmpty(temp)) {
                             continue;
                         }
@@ -108,23 +133,31 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                             if (null == plusNodesList) {
                                 plusNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                             }
-                            plusNodesList.add(temp.substring(index));
+                            plusNodesList.add(temp.substring(INDEX));
                         } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
                             if (null == reducesNodesList) {
                                 reducesNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                             }
-                            reducesNodesList.add(temp.substring(index));
+                            reducesNodesList.add(temp.substring(INDEX));
                         }
                     }
                     addNodes(content, null != plusNodesList ? plusNodesList.toArray(new String[plusNodesList.size()]) : null,
                             null != reducesNodesList ? reducesNodesList.toArray(new String[reducesNodesList.size()]) : null);
                 } else {
-                    final String temp = queue.take();//阻塞等待,直至有具体的事件发生
-                    final String[] nodes = new String[]{temp.substring(index)};
-                    if (temp.startsWith(Constants.PLUS_EVENT)) {
-                        addNodes(content, nodes, null);
-                    } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
-                        addNodes(content, null, nodes);
+                    lock.lockInterruptibly();
+                    try {
+                        while (node.size() - INDEX == 0) {
+                            condition.await();
+                        }
+                        final String temp = node.get(INDEX);
+                        final String[] nodes = new String[]{temp.substring(1)};
+                        if (temp.startsWith(Constants.PLUS_EVENT)) {
+                            addNodes(content, nodes, null);
+                        } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
+                            addNodes(content, null, nodes);
+                        }
+                    } finally {
+                        lock.unlock();
                     }
                 }
             }

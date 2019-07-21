@@ -132,11 +132,33 @@ public class CorgiCommandsTemplate implements CorgiCommands {
         transferBo.setBatch(isBatch);
         transferBo.setPullSize(pullSize);
         transferBo.setPullTimeOut(pullTimeOut);
+        Map<String, Integer> indexMap = CorgiFramework.getIndexMap();
+        int index = 0;
+        if (!indexMap.containsKey(persistentNode)) {
+            indexMap.put(persistentNode, index);
+        } else {
+            index = indexMap.get(persistentNode);
+        }
+        transferBo.setIndex(index);
+        int finalIndex = index;
         return run(() -> {
             TransferBo.Content content = runWithRetries(redirections, transferBo,
                     assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null);
             //判断命令是否执行成功,只有执行成功才返回结果集
             if (content.getResult().equals(Constants.REQUEST_RESULT)) {
+                final int initIndex = content.getInitIndex();
+                if (initIndex > 0) {
+                    indexMap.put(persistentNode, initIndex);//第一次全量返回时，初始客户端位点
+                } else {
+                    int size = 0;
+                    if (null != content.getPlusNodes()) {
+                        size += content.getPlusNodes().length;
+                    }
+                    if (null != content.getReducesNodes()) {
+                        size += content.getReducesNodes().length;
+                    }
+                    indexMap.put(persistentNode, finalIndex + size);
+                }
                 return new NodeBo(content.getPlusNodes(), content.getReducesNodes());
             }
             return null;
