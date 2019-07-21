@@ -30,47 +30,22 @@ import java.util.List;
  * @version 0.1-SNAPSHOT
  * @date created in 2019-06-19 15:48
  */
-public class ZookeeperConnectionHandler implements ZookeeperCommands {
-    /**
-     * zookeeper host
-     */
-    private String host;
-
-    /**
-     * zookeeper的租约时间
-     */
-    private int sessionTimeoutMs;
-
-    /**
-     * zookeeper的连接超时时间
-     */
-    private int connectionTimeoutMs;
-    private CuratorFramework framework;
+public class ZookeeperConnectionHandler extends ZookeeperConnection implements ZookeeperCommands {
     private ZookeeperCommandsImpl zookeeperCommands;
 
     public ZookeeperConnectionHandler(String host, int sessionTimeoutMs, int connectionTimeoutMs) {
-        this.host = host;
-        this.sessionTimeoutMs = sessionTimeoutMs;
-        this.connectionTimeoutMs = connectionTimeoutMs;
+        super(host, sessionTimeoutMs, connectionTimeoutMs);
     }
 
     /**
-     * 初始化Zookeeper会话连接
+     * Zookeeper相关初始化操作
      *
      * @return
      * @throws StartingException
      */
     public ZookeeperConnectionHandler init() throws StartingException {
-        try {
-            framework = CuratorFrameworkFactory.builder().connectString(host).sessionTimeoutMs(sessionTimeoutMs)
-                    .connectionTimeoutMs(connectionTimeoutMs).retryPolicy(new RetryNTimes(Integer.MAX_VALUE,
-                            Constants.SLEEP_MS_BETWEEN_RETRIES))
-                    .build();
-            framework.start();
-        } catch (Throwable e) {
-            throw new StartingException(e);
-        }
-        zookeeperCommands = new ZookeeperCommandsImpl(framework);
+        conn();
+        zookeeperCommands = new ZookeeperCommandsImpl(getFramework());
         return this;
     }
 

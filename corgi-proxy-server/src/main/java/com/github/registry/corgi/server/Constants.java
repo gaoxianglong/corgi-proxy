@@ -50,7 +50,7 @@ public class Constants {
     public final static String COPYRIGHT = "gao_xianglong@sina.com";
     public final static String IGNITE_DOCUMENTATION = "https://github.com/gaoxianglong/corgi";
     public final static String CONFIGURATION_PATH = "properties/corgi-global.properties";
-    public final static String VERSION = "0.1-SNAPSHOT";
+    public final static String VERSION = "0.2-SNAPSHOT";
     public static final String LINE = System.getProperty("line.separator");
 
     public final static String OS_NAME = System.getProperty("os.name");
@@ -64,6 +64,7 @@ public class Constants {
     public final static long MAX_HEAP = MEMORY_BEAN.getHeapMemoryUsage().getMax();
     public final static RuntimeMXBean RUNTIME_BEAN = ManagementFactory.getRuntimeMXBean();
     public final static int PID = Integer.parseInt(RUNTIME_BEAN.getName().split("@")[0]);
+    public final static int CHECK_TIMEOUT = 2;
 
     public final static int SLEEP_MS_BETWEEN_RETRIES = 1000;
 

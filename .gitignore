@@ -3,7 +3,7 @@
 *.iml
 
 # for Maven
-corgi-proxy/logs
+logs
 corgi-proxy-api/target/
 corgi-proxy-api-dubbo/target/
 corgi-proxy-server/target/

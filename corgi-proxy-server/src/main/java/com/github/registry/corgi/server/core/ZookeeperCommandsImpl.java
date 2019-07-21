@@ -66,7 +66,7 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
         isEmpty(rootPath, path);
         createPersistentNode(rootPath);//如果根目录不存在，则首先创建根目录
         final String PATH = String.format("%s/%s", rootPath, path);
-        deleteChildren(String.format("%s/%s", rootPath, path));//如果目标临时节点已经存在，则先删除后再创建
+        deleteChildren(PATH);//如果目标临时节点已经存在，则先删除后再创建
         return framework.create().withMode(CreateMode.EPHEMERAL).forPath(PATH);
     }
 

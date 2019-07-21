@@ -111,26 +111,51 @@ public class CorgiServer {
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture future = bootstrap.bind().sync();
             if (future.isSuccess()) {
-                registerCorgiNode();//服务启动成功后,将自身注册到注册中心
-                long endTime = System.currentTimeMillis();
-                log.info("Initialization processed in {} s", new BigDecimal(endTime - beginTime)
-                        .divide(new BigDecimal(1000), 2, BigDecimal.ROUND_DOWN).doubleValue());
-                log.info("Corgi-server start successful (bind port: {}, pid: {})", port, Constants.PID);
+                try {
+                    registerCorgiNode();//服务启动成功后,将自身注册到注册中心
+                    long endTime = System.currentTimeMillis();
+                    log.info("Initialization processed in {} s", new BigDecimal(endTime - beginTime)
+                            .divide(new BigDecimal(1000), 2, BigDecimal.ROUND_DOWN).doubleValue());
+                    log.info("Corgi-server start successful (bind port: {}, pid: {})", port, Constants.PID);
+                } finally {
+                    destroyAll(bossGroup, workerGroup);
+                }
             }
             future.channel().closeFuture().sync();
         } catch (Throwable e) {
             throw new StartingException(e);
-        } finally {
-            try {
-                bossGroup.shutdownGracefully().sync();
-                workerGroup.shutdownGracefully().sync();
-                if (!executor.isShutdown()) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                throw new StartingException("Fail to close resource", e);
-            }
         }
+    }
+
+    /**
+     * 释放资源
+     */
+    private void destroyAll(EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+        //注册钩子
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (null != connectionHandler) {
+                log.info("Stopping the corgi-server...");
+                try {
+                    if (!executor.isShutdown()) {
+                        executor.shutdownNow(); //发起interrupt信号，业务线程池拒绝再接收任何新请求
+                        while (true) {
+                            //缺省每隔2s检测工作线程是否已经全部结束
+                            if (executor.awaitTermination(Constants.CHECK_TIMEOUT,
+                                    TimeUnit.SECONDS)) {
+                                break;
+                            }
+                        }
+                    }
+                    //释放Netty的I/O线程组资源
+                    bossGroup.shutdownGracefully().sync();
+                    workerGroup.shutdownGracefully().sync();
+                    //断开Zookeeper的会话连接
+                    connectionHandler.close();
+                } catch (InterruptedException e) {
+                    //...
+                }
+            }
+        }));
     }
 
     /**
