@@ -30,10 +30,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.resolver.AddressResolverGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -48,17 +50,22 @@ public class CorgiConnection {
      * 获取操作系统类型
      */
     private final String OS = Constants.OS_NAME;
-    private InetSocketAddress address;
+    private List<InetSocketAddress> addresses;
+    /**
+     * remoteAddress地址索引
+     */
+    private int addressIndex;
     private Channel channel;
     private EventLoopGroup group;
     private Logger log = LoggerFactory.getLogger(CorgiConnection.class);
 
-    protected CorgiConnection(InetSocketAddress address) {
-        this.address = address;
+    protected CorgiConnection(List<InetSocketAddress> addresses) {
+        this.addresses = addresses;
     }
 
     protected void conn() {
         close();
+        final InetSocketAddress address = getRemoteAddress();
         group = getEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap();
         try {
@@ -79,7 +86,7 @@ public class CorgiConnection {
                             ch.pipeline().addLast("acceptorIdleStateTrigger", new AcceptorIdleStateTrigger());//添加写空闲超时处理的ChannelHandler
                             //添加处理最终入站事件的ChannelHandler
                             ch.pipeline().addLast("corgiHandler", new CorgiClientHandler(CorgiFramework.getThreadMap(), CorgiFramework.getResultMap(),
-                                    CorgiFramework.getRegisterPaths()));
+                                    CorgiFramework.getRegisterPaths(), CorgiFramework.getIndexMap()));
                         }
                     });
             ChannelFuture future = bootstrap.connect().sync();//尝试连接corgi-server
@@ -96,13 +103,20 @@ public class CorgiConnection {
                     e1.printStackTrace();
                 }
             }
-            conn();
             try {
+                conn();
                 TimeUnit.SECONDS.sleep(Constants.RECONNECT); //每隔5秒重连一次
             } catch (InterruptedException e1) {
                 e1.printStackTrace();
             }
         }
+    }
+
+    private InetSocketAddress getRemoteAddress() {
+        if (addressIndex >= addresses.size()) {
+            addressIndex = 0;
+        }
+        return addresses.get(addressIndex++);
     }
 
     public Channel getChannel() {

@@ -38,20 +38,25 @@ import java.util.concurrent.TimeUnit;
  */
 public class CorgiClientHandler extends ChannelInboundHandlerAdapter {
     private Map<Long, Object> threadMap;
+    private Map<String, Integer> indexMap;
     private Map<Long, CorgiProtocol> resultMap;
     private Map<String, RegisterCallBack> registerPaths;
     private Logger log = LoggerFactory.getLogger(CorgiClientHandler.class);
 
     public CorgiClientHandler(Map<Long, Object> threadMap, Map<Long, CorgiProtocol> resultMap,
-                              Map<String, RegisterCallBack> registerPaths) {
+                              Map<String, RegisterCallBack> registerPaths, Map<String, Integer> indexMap) {
         this.threadMap = threadMap;
         this.resultMap = resultMap;
         this.registerPaths = registerPaths;
+        this.indexMap = indexMap;
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.warn("The connection({}) has been disconnected", ctx.channel());
+        indexMap.forEach((x, y) -> {
+            indexMap.put(x, 0);//重置客户端位点
+        });
         threadMap.values().parallelStream().forEach(x -> {
             synchronized (x) {
                 x.notify();

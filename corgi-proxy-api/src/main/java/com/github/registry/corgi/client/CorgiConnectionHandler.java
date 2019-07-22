@@ -20,6 +20,7 @@ import com.github.registry.corgi.utils.CorgiProtocol;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -31,35 +32,37 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CorgiConnectionHandler implements CommandOperation {
     private CorgiClient client;
-    private String hostName;
-    private int port;
-    private volatile static AtomicInteger index = new AtomicInteger(-1);
+    private List<InetSocketAddress> addresses = new Vector<>(Constants.INITIAL_CAPACITY);
 
     public CorgiConnectionHandler(List<HostAndPort> hostAndPorts) {
         if (null == hostAndPorts || hostAndPorts.isEmpty()) {
             return;
         }
-        HostAndPort hostAndPort = null;
-        if (hostAndPorts.size() < 2) {
-            hostAndPort = hostAndPorts.get(0);
-        } else {
-            Collections.shuffle(hostAndPorts);//对地址列表进行乱序排列操作
-            int temp = index.incrementAndGet();
-            if (temp >= hostAndPorts.size()) {
-                int source = 0;
-                do {
-                    source = index.get();
-                } while (!(index.compareAndSet(source, -1)));
-                temp = index.incrementAndGet();
-            }
-            hostAndPort = hostAndPorts.get(temp);
-        }
-        this.hostName = hostAndPort.getHostName();
-        this.port = hostAndPort.getPort();
+        hostAndPorts.forEach(x -> {
+            addresses.add(new InetSocketAddress(x.getHostName(), x.getPort()));
+        });
+        Collections.shuffle(addresses);//对地址列表进行乱序排列操作
+//        HostAndPort hostAndPort = null;
+//        if (hostAndPorts.size() < 2) {
+//            hostAndPort = hostAndPorts.get(0);
+//        } else {
+//            Collections.shuffle(hostAndPorts);//对地址列表进行乱序排列操作
+//            int temp = index.incrementAndGet();
+//            if (temp >= hostAndPorts.size()) {
+//                int source = 0;
+//                do {
+//                    source = index.get();
+//                } while (!(index.compareAndSet(source, -1)));
+//                temp = index.incrementAndGet();
+//            }
+//            hostAndPort = hostAndPorts.get(temp);
+//        }
+//        this.hostName = hostAndPort.getHostName();
+//        this.port = hostAndPort.getPort();
     }
 
     public CorgiConnectionHandler init() {
-        client = new CorgiClient(new InetSocketAddress(hostName, port)).init();//建立corgi-client与corgi-server的会话连接
+        client = new CorgiClient(addresses).init();//建立corgi-client与corgi-server的会话连接
         return this;
     }
 

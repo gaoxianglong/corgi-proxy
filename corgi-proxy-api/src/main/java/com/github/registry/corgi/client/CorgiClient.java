@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
 /**
  * 处理Channel的消息发送/请求接收
@@ -31,8 +32,8 @@ import java.net.InetSocketAddress;
 public class CorgiClient extends CorgiConnection implements CommandOperation {
     private Logger log = LoggerFactory.getLogger(CorgiClient.class);
 
-    public CorgiClient(InetSocketAddress address) {
-        super(address);
+    public CorgiClient(List<InetSocketAddress> addresses) {
+        super(addresses);
     }
 
     /**
@@ -58,7 +59,7 @@ public class CorgiClient extends CorgiConnection implements CommandOperation {
             try {
                 template.wait();//阻塞当前业务线程，等待corgi-server响应对等消息时被唤醒
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                //...
             }
         }
     }

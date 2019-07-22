@@ -16,6 +16,8 @@
 package com.github.registry.corgi.client;
 
 import com.github.registry.corgi.utils.CorgiProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,6 +68,7 @@ public class CorgiFramework implements CorgiCommands {
      * 批量拉取开关,缺省关闭
      */
     private boolean isBatch;
+    private Logger log = LoggerFactory.getLogger(CorgiFramework.class);
 
     private CorgiFramework(Builder builder) {
         hostAndPorts.addAll(builder.hostAndPorts);
@@ -141,7 +144,25 @@ public class CorgiFramework implements CorgiCommands {
      */
     public CorgiFramework init() {
         connectionHandler = new CorgiConnectionHandler(hostAndPorts).init();
+        destroyAll();
         return this;
+    }
+
+    /**
+     * 释放资源
+     */
+    private void destroyAll() {
+        //注册钩子
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (null != connectionHandler) {
+                log.info("Stopping the corgi-client...");
+                try {
+                    close();
+                } catch (Throwable e) {
+                    //...
+                }
+            }
+        }));
     }
 
     @Override

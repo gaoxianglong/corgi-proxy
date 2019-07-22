@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +38,7 @@ public class CorgiFrameworkTest {
     @Test
     public void testConnection() {
         AtomicInteger num = new AtomicInteger();
-        CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376)).
+        CorgiFramework framework = new CorgiFramework.Builder(Arrays.asList(new HostAndPort("127.0.0.1", 9376), new HostAndPort("127.0.0.1", 9378), new HostAndPort("127.0.0.1", 9377))).
                 serialization(CorgiFramework.SerializationType.FST).isBatch(true).pullTimeOut(5000).pullSize(10).builder().init();
         for (int i = 0; i < 20; i++) {
             log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
@@ -45,17 +46,25 @@ public class CorgiFrameworkTest {
         }
         new Thread(() -> {
             while (true) {
-                CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.github.registry.corgi.service.ServiceB/providers");
-                if (null != nodeBo) {
-                    log.info("a:{}", nodeBo.toString());
+                try {
+                    CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.github.registry.corgi.service.ServiceB/providers");
+                    if (null != nodeBo) {
+                        log.info("a:{}", nodeBo.toString());
+                    }
+                } catch (Exception e) {
+                    //...
                 }
             }
         }).start();
         new Thread(() -> {
             while (true) {
-                CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers");
-                if (null != nodeBo) {
-                    log.info("b:{}", nodeBo.toString());
+                try {
+                    CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers");
+                    if (null != nodeBo) {
+                        log.info("b:{}", nodeBo.toString());
+                    }
+                } catch (Exception e) {
+                    //...
                 }
             }
         }).start();

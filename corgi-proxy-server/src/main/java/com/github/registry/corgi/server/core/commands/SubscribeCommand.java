@@ -78,9 +78,9 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                     node = new Vector<>(Constants.CAPACITY);
                     nodes.put(PATH, node);
                     Vector<String> finalNode = node;
-                    //watch,检测到事件流后触发后回调
                     Condition finalCondition = condition;
                     ReentrantLock finalLock = lock;
+                    //watch,检测到事件流后触发后回调
                     connectionHandler.watch(PATH, event -> {
                         finalLock.lockInterruptibly();
                         try {
@@ -106,24 +106,22 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                 if (transferBo.isBatch()) {
                     List<String> plusNodesList = null;
                     List<String> reducesNodesList = null;
+                    int nodeSize = 0;
                     long nanos = TimeUnit.MILLISECONDS.toNanos(transferBo.getPullTimeOut());
                     lock.lockInterruptibly();
                     try {
-                        int nodeSize = 0;
-                        while ((nodeSize = node.size()) < (index + pullSize)) {//判断是否能够拉取到足够的数据
+                        while ((nodeSize = node.size()) < (index + pullSize)) {//判断是否能够拉取到足够的数据,如果够拉取则不阻塞
                             if (nanos <= 0) {
-                                if (nodeSize - index == 0) {
-                                    break;
-                                } else {
-                                    //获取实际批量拉取的数量
-                                    pullSize = (nodeSize - index) >= pullSize ? pullSize : nodeSize - index;
-                                }
+                                break;
                             }
                             nanos = condition.awaitNanos(nanos);
                         }
                     } finally {
                         lock.unlock();
                     }
+                    //获取客户端真正的拉取数量
+                    pullSize = (nodeSize - index) <= 0 ? 0 : (nodeSize - index) >= pullSize ?
+                            pullSize : nodeSize - index;
                     for (int i = 0; i < pullSize; i++) {
                         final String temp = node.get(index++);
                         if (StringUtils.isEmpty(temp)) {
@@ -146,7 +144,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                 } else {
                     lock.lockInterruptibly();
                     try {
-                        while (node.size() - index == 0) {
+                        while (node.size() - index <= 0) {
                             condition.await();
                         }
                         final String temp = node.get(index);
