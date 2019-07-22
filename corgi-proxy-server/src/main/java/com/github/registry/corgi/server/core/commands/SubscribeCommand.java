@@ -59,7 +59,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
         TransferBo.Content content = new TransferBo.Content();
         final String PATH = transferBo.getPersistentNode();
-        final int INDEX = transferBo.getIndex();//corgi-client位点
+        int index = transferBo.getIndex();//corgi-client位点
         int pullSize = transferBo.getPullSize();
         Vector<String> node = nodes.get(PATH);
         ReentrantLock lock = lockMap.get(PATH);
@@ -110,13 +110,13 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                     lock.lockInterruptibly();
                     try {
                         int nodeSize = 0;
-                        while ((nodeSize = node.size()) < (INDEX + pullSize - 1)) {//判断是否能够拉取到足够的数据
+                        while ((nodeSize = node.size()) < (index + pullSize)) {//判断是否能够拉取到足够的数据
                             if (nanos <= 0) {
-                                if (INDEX == nodeSize) {
+                                if (nodeSize - index == 0) {
                                     break;
                                 } else {
                                     //获取实际批量拉取的数量
-                                    pullSize = (nodeSize - INDEX) >= pullSize ? pullSize : nodeSize - INDEX;
+                                    pullSize = (nodeSize - index) >= pullSize ? pullSize : nodeSize - index;
                                 }
                             }
                             nanos = condition.awaitNanos(nanos);
@@ -125,7 +125,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                         lock.unlock();
                     }
                     for (int i = 0; i < pullSize; i++) {
-                        final String temp = node.get(i);
+                        final String temp = node.get(index++);
                         if (StringUtils.isEmpty(temp)) {
                             continue;
                         }
@@ -133,12 +133,12 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                             if (null == plusNodesList) {
                                 plusNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                             }
-                            plusNodesList.add(temp.substring(INDEX));
+                            plusNodesList.add(temp.substring(Constants.BEGIN_INDEX));
                         } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
                             if (null == reducesNodesList) {
                                 reducesNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                             }
-                            reducesNodesList.add(temp.substring(INDEX));
+                            reducesNodesList.add(temp.substring(Constants.BEGIN_INDEX));
                         }
                     }
                     addNodes(content, null != plusNodesList ? plusNodesList.toArray(new String[plusNodesList.size()]) : null,
@@ -146,11 +146,11 @@ public class SubscribeCommand extends CorgiCommandTemplate {
                 } else {
                     lock.lockInterruptibly();
                     try {
-                        while (node.size() - INDEX == 0) {
+                        while (node.size() - index == 0) {
                             condition.await();
                         }
-                        final String temp = node.get(INDEX);
-                        final String[] nodes = new String[]{temp.substring(1)};
+                        final String temp = node.get(index);
+                        final String[] nodes = new String[]{temp.substring(Constants.BEGIN_INDEX)};
                         if (temp.startsWith(Constants.PLUS_EVENT)) {
                             addNodes(content, nodes, null);
                         } else if (temp.startsWith(Constants.REDUCES_EVENT)) {

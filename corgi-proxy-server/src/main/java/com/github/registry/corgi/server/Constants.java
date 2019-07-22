@@ -65,6 +65,7 @@ public class Constants {
     public final static RuntimeMXBean RUNTIME_BEAN = ManagementFactory.getRuntimeMXBean();
     public final static int PID = Integer.parseInt(RUNTIME_BEAN.getName().split("@")[0]);
     public final static int CHECK_TIMEOUT = 2;
+    public final static int BEGIN_INDEX = 1;
 
     public final static int SLEEP_MS_BETWEEN_RETRIES = 1000;
 

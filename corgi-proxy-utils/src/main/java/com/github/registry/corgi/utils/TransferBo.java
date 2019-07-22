@@ -40,7 +40,7 @@ public class TransferBo implements Serializable {
      */
     private int pullSize;
     /**
-     * 客户端记录的拉取位点
+     * 客户端位点
      */
     private int index;
     /**
@@ -70,7 +70,7 @@ public class TransferBo implements Serializable {
          */
         private String[] reducesNodes;
         /**
-         * 第一次订阅时返回给客户端初始的位点
+         * 第一次订阅时返回给客户端的初始位点
          */
         private int initIndex;
 

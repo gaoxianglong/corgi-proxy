@@ -38,11 +38,11 @@ public class CorgiFrameworkTest {
     public void testConnection() {
         AtomicInteger num = new AtomicInteger();
         CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376)).
-                serialization(CorgiFramework.SerializationType.FST).isBatch(false).pullTimeOut(5000).pullSize(10).builder().init();
-//        for (int i = 0; i < 20; i++) {
-//            log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
-//                    String.valueOf(num.incrementAndGet())));
-//        }
+                serialization(CorgiFramework.SerializationType.FST).isBatch(true).pullTimeOut(5000).pullSize(10).builder().init();
+        for (int i = 0; i < 20; i++) {
+            log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
+                    String.valueOf(num.incrementAndGet())));
+        }
         new Thread(() -> {
             while (true) {
                 CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.github.registry.corgi.service.ServiceB/providers");
