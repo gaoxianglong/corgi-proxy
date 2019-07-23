@@ -66,7 +66,7 @@ public class SubscribeCommand extends CorgiCommandTemplate {
         Condition condition = conditionMap.get(PATH);
         try {
             synchronized (nodes) {
-                if (null == node) {
+                if (!nodes.containsKey(PATH)) {
                     if (null == lock) {
                         lock = new ReentrantLock();
                         lockMap.put(PATH, lock);
