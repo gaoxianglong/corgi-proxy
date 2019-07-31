@@ -16,13 +16,12 @@
 package com.github.registry.corgi.server.core.commands;
 
 import com.github.registry.corgi.server.Constants;
+import com.github.registry.corgi.server.core.ServiceEvents;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.utils.CorgiProtocol;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 实际命令处理类
@@ -34,12 +33,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class CorgiCommandHandler implements CorgiCommandStrategy {
     private CorgiProtocol protocol;
     private ZookeeperConnectionHandler connectionHandler;
-    private Map<String, Vector<String>> nodes;
+    private Map<String, ServiceEvents> nodes;
     private List<String> registerPaths;
     private List<String> subscribePaths;
 
     public CorgiCommandHandler(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler,
-                               Map<String, Vector<String>> nodes, List<String> registerPaths, List<String> subscribePaths) {
+                               Map<String, ServiceEvents> nodes, List<String> registerPaths, List<String> subscribePaths) {
         this.protocol = protocol;
         this.connectionHandler = connectionHandler;
         this.nodes = nodes;

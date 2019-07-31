@@ -21,9 +21,12 @@ import com.github.registry.corgi.utils.CorgiProtocol;
 import com.github.registry.corgi.utils.CorgiSerializationUtil;
 import com.github.registry.corgi.utils.TransferBo;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.soap.Node;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Corgi命令模板类
@@ -43,6 +46,7 @@ public class CorgiCommandsTemplate implements CorgiCommands {
     private boolean isBatch;
     private int pullSize;
     private int pullTimeOut;
+    private Logger log = LoggerFactory.getLogger(CorgiCommandsTemplate.class);
 
     protected CorgiCommandsTemplate(CorgiFramework.SerializationType serialization, int redirections) {
         this(serialization, redirections, false, 0, 0);
@@ -133,22 +137,23 @@ public class CorgiCommandsTemplate implements CorgiCommands {
         transferBo.setPullSize(pullSize);
         transferBo.setPullTimeOut(pullTimeOut);
         Map<String, Integer> indexMap = CorgiFramework.getIndexMap();
-        int index = 0;
+        int position = 0;
         if (!indexMap.containsKey(persistentNode)) {
-            indexMap.put(persistentNode, index);
+            indexMap.put(persistentNode, position);
         } else {
-            index = indexMap.get(persistentNode);
+            position = indexMap.get(persistentNode);
         }
-        transferBo.setIndex(index);
-        int finalIndex = index;
+        transferBo.setPosition(position);
+        log.info("persistentNode:{},position:{}", persistentNode, position);
+        int finalPosition = position;
         return run(() -> {
             TransferBo.Content content = runWithRetries(redirections, transferBo,
                     assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null);
             //判断命令是否执行成功,只有执行成功才返回结果集
             if (content.getResult().equals(Constants.REQUEST_RESULT)) {
-                final int initIndex = content.getInitIndex();
+                final int initIndex = content.getInitPosition();
                 if (initIndex > 0) {
-                    indexMap.put(persistentNode, initIndex);//第一次全量返回时，初始客户端位点
+                    indexMap.put(persistentNode, initIndex);//第一次全量返回以及无效位点访问时，初始客户端位点
                 } else {
                     int size = 0;
                     if (null != content.getPlusNodes()) {
@@ -157,7 +162,7 @@ public class CorgiCommandsTemplate implements CorgiCommands {
                     if (null != content.getReducesNodes()) {
                         size += content.getReducesNodes().length;
                     }
-                    indexMap.put(persistentNode, finalIndex + size);
+                    indexMap.put(persistentNode, finalPosition + size);
                 }
                 return new NodeBo(content.getPlusNodes(), content.getReducesNodes());
             }

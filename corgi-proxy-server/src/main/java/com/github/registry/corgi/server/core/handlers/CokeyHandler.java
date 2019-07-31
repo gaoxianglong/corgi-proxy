@@ -16,11 +16,10 @@
 package com.github.registry.corgi.server.core.handlers;
 
 import com.github.registry.corgi.server.Constants;
+import com.github.registry.corgi.server.core.ServiceEvents;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.server.core.commands.CorgiCommandHandler;
 import com.github.registry.corgi.utils.CorgiProtocol;
-import com.github.registry.corgi.utils.CorgiSerializationUtil;
-import com.github.registry.corgi.utils.TransferBo;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.commons.lang3.StringUtils;
@@ -31,9 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 处理最终入站事件的ChannelHandler,负责调用下游具体的命令执行
@@ -45,7 +42,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class CokeyHandler extends ChannelInboundHandlerAdapter {
     private ZookeeperConnectionHandler connectionHandler;
     private ExecutorService executor;
-    private Map<String, Vector<String>> nodes;
+    private Map<String, ServiceEvents> nodes;
     /**
      * 记录一个Channel上注册过的所有节点，断开连接时全部都需要取消注册
      */
@@ -57,7 +54,7 @@ public class CokeyHandler extends ChannelInboundHandlerAdapter {
     private Logger log = LoggerFactory.getLogger("");
 
     public CokeyHandler(ZookeeperConnectionHandler connectionHandler, ExecutorService executor,
-                        Map<String, Vector<String>> nodes) {
+                        Map<String, ServiceEvents> nodes) {
         this.connectionHandler = connectionHandler;
         this.executor = executor;
         this.nodes = nodes;

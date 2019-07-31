@@ -42,7 +42,7 @@ public class TransferBo implements Serializable {
     /**
      * 客户端位点
      */
-    private int index;
+    private int position;
     /**
      * 拉取超时时间
      */
@@ -72,14 +72,14 @@ public class TransferBo implements Serializable {
         /**
          * 第一次订阅时返回给客户端的初始位点
          */
-        private int initIndex;
+        private int initPosition;
 
-        public int getInitIndex() {
-            return initIndex;
+        public int getInitPosition() {
+            return initPosition;
         }
 
-        public void setInitIndex(int initIndex) {
-            this.initIndex = initIndex;
+        public void setInitPosition(int initPosition) {
+            this.initPosition = initPosition;
         }
 
         public String getResult() {
@@ -112,7 +112,7 @@ public class TransferBo implements Serializable {
                     "result='" + result + '\'' +
                     ", plusNodes=" + Arrays.toString(plusNodes) +
                     ", reducesNodes=" + Arrays.toString(reducesNodes) +
-                    ", initIndex=" + initIndex +
+                    ", initPosition=" + initPosition +
                     '}';
         }
     }
@@ -165,12 +165,12 @@ public class TransferBo implements Serializable {
         this.content = content;
     }
 
-    public int getIndex() {
-        return index;
+    public int getPosition() {
+        return position;
     }
 
-    public void setIndex(int index) {
-        this.index = index;
+    public void setPosition(int position) {
+        this.position = position;
     }
 
     @Override
@@ -179,7 +179,7 @@ public class TransferBo implements Serializable {
                 "persistentNode='" + persistentNode + '\'' +
                 ", ephemeralNode='" + ephemeralNode + '\'' +
                 ", pullSize=" + pullSize +
-                ", index=" + index +
+                ", position=" + position +
                 ", pullTimeOut=" + pullTimeOut +
                 ", isBatch=" + isBatch +
                 ", content=" + content.toString() +

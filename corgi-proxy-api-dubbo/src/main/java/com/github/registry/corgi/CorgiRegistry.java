@@ -171,7 +171,7 @@ public class CorgiRegistry extends FailbackRegistry {
                         }
                         String[] plusNodes_ = nodeBo_.getPlusNodes();
                         if (null != plusNodes_) {
-                            Stream.of(plusNodes_).forEach(x -> {
+                            Stream.of(plusNodes_).filter(x -> !urls.contains(x)).forEach(x -> {
                                 urls.add(URL.valueOf(URL.decode(x)));
                                 log.debug("plusNodes:{}", plusNodes_);
                             });

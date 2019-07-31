@@ -8,3 +8,8 @@ corgi-proxy-api/target/
 corgi-proxy-api-dubbo/target/
 corgi-proxy-server/target/
 corgi-proxy-utils/target/
+corgi-proxy-demo/service-a/target
+corgi-proxy-demo/service-b/service-b-api/target
+corgi-proxy-demo/service-b/service-b-impl/target
+corgi-proxy-demo/service-c/service-c-api/target
+corgi-proxy-demo/service-c/service-c-impl/target

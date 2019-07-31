@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -58,7 +58,7 @@ public class CorgiServer {
     /**
      * 记录服务的上/下线事件流
      */
-    private static volatile Map<String, Vector<String>> nodes = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    private static volatile Map<String, ServiceEvents> nodes = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
     private static Logger log = LoggerFactory.getLogger("");
 
     public CorgiServer(long beginTime, Parameters parameters, ExecutorService executor, ZookeeperConnectionHandler connectionHandler) {
@@ -125,6 +125,7 @@ public class CorgiServer {
                             .divide(new BigDecimal(1000), 2, BigDecimal.ROUND_DOWN).doubleValue());
                     log.info("Corgi-server start successful (bind port: {}, pid: {})", port, Constants.PID);
                 } finally {
+                    clean();
                     destroyAll(bossGroup, workerGroup);
                 }
             }
@@ -135,13 +136,27 @@ public class CorgiServer {
     }
 
     /**
+     * 定时清空过期事件流,缺省60s执行一次检测
+     */
+    private void clean() {
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
+            log.debug("Prepare for cleanup events...");
+            long timestamp = System.currentTimeMillis();
+            nodes.forEach((x, y) -> y.cleanPeriodically(timestamp));
+        }, Constants.INITIAL_DELAY, Constants.PERIOD, TimeUnit.MILLISECONDS);
+    }
+
+    /**
      * 释放资源
+     *
+     * @param bossGroup
+     * @param workerGroup
      */
     private void destroyAll(EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         //注册钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (null != connectionHandler) {
-                log.info("Stopping the corgi-server...");
+                log.debug("Stopping the corgi-server...");
                 try {
                     if (!executor.isShutdown()) {
                         executor.shutdownNow(); //发起interrupt信号，业务线程池拒绝再接收任何新请求

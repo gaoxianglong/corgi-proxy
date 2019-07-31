@@ -86,4 +86,7 @@ public class Constants {
 
     public final static String PLUS_EVENT = "+";
     public final static String REDUCES_EVENT = "-";
+    public final static int INITIAL_DELAY = 1000 * 60;
+    public final static int PERIOD = 1000 * 60;
+    public final static int AMOUNT = 1;
 }

@@ -13,6 +13,7 @@
         <module>corgi-proxy-server</module>
         <module>corgi-proxy-utils</module>
         <module>corgi-proxy-demo</module>
+        <module>corgi-proxy-monitor</module>
     </modules>
     <properties>
         <java-version>1.8</java-version>
