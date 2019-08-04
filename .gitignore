@@ -13,3 +13,4 @@ corgi-proxy-demo/service-b/service-b-api/target
 corgi-proxy-demo/service-b/service-b-impl/target
 corgi-proxy-demo/service-c/service-c-api/target
 corgi-proxy-demo/service-c/service-c-impl/target
+corgi-proxy-monitor/target
