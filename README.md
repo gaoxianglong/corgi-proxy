@@ -52,8 +52,5 @@ Instead of directly connecting to Zookeeper, the application uses corgi-proxy mi
 <div align=center><img width="550" height="372" src="https://github.com/gaoxianglong/corgi-proxy/blob/master/resources/imgs/architecture.jpeg"/></div>
 Corgi-proxy realizes incremental data pull strategy by relying on TreeCache of Apache Curator. In other words, the corgi-proxy internal maintains a snapshot data in memory. When the target node changes, it identifies specific up/down events by comparing the meta-information (zxid) in the memory snapshot, and then the specific update events are written to the blocking queue corresponding to each corgi-proxy client, waiting for its active incremental pull consumption(the first pull is the full amount). 
 
-## Future
-0.2-SNAPSHOT Version planning:
-- Improve monitoring function
-- Support repeated pull to update events and avoid loss of events when corgi-proxy fails to return
-- Wider unit test coverage
+## Monitor
+<div align=center><img src="https://github.com/gaoxianglong/corgi-proxy/blob/master/resources/imgs/monitor.png"/></div>
