@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cd $CORGI_HOME
-
 #如果nohup.out文件存在则删除
 NOHUP_PATH=nohup.out
 if [ -f "$NOHUP_PATH" ];then
