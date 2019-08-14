@@ -144,7 +144,7 @@ public class CorgiCommandsTemplate implements CorgiCommands {
             position = indexMap.get(persistentNode);
         }
         transferBo.setPosition(position);
-        log.info("persistentNode:{},position:{}", persistentNode, position);
+        log.debug("persistentNode:{},position:{}", persistentNode, position);
         int finalPosition = position;
         return run(() -> {
             TransferBo.Content content = runWithRetries(redirections, transferBo,

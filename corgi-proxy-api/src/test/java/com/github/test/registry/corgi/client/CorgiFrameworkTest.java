@@ -37,7 +37,7 @@
 //        AtomicInteger num = new AtomicInteger();
 ////        CorgiFramework framework = new CorgiFramework.Builder(Arrays.asList(new HostAndPort("127.0.0.1", 9376), new HostAndPort("127.0.0.1", 9378), new HostAndPort("127.0.0.1", 9377))).
 ////                serialization(CorgiFramework.SerializationType.FST).isBatch(true).pullTimeOut(5000).pullSize(10).builder().init();
-//        CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9377)).
+//        CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376)).
 //                serialization(CorgiFramework.SerializationType.FST).isBatch(true).pullTimeOut(5000).pullSize(10).builder().init();
 //        for (int i = 0; i < 20; i++) {
 //            log.info("result:{}", framework.register("/dubbo/com.gxl.test.service.user.UserService/providers",
@@ -59,9 +59,10 @@
 //            while (true) {
 //                try {
 //                    CorgiCommands.NodeBo nodeBo = framework.subscribe("/dubbo/com.gxl.test.service.user.UserService/providers");
-//                    if (null != nodeBo) {
-//                        log.info("b:{}", nodeBo.toString());
+//                    if(null == nodeBo || (null == nodeBo.getPlusNodes() && null == nodeBo.getReducesNodes())){
+//                        continue;
 //                    }
+//                    log.info("b:{}", nodeBo.toString());
 //                } catch (Exception e) {
 //                    //...
 //                }

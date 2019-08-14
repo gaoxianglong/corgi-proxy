@@ -166,9 +166,12 @@ public class CorgiRegistry extends FailbackRegistry {
                 Executors.newSingleThreadScheduledExecutor().execute(() -> {
                     while (true) {
                         CorgiCommands.NodeBo nodeBo_ = framework.subscribe(path);
-                        if (null == nodeBo_) {
+                        if (null == nodeBo_ || (null == nodeBo_.getPlusNodes() && null == nodeBo_.getReducesNodes())) {
                             continue;
                         }
+//                        if (null == nodeBo_) {
+//                            continue;
+//                        }
                         String[] plusNodes_ = nodeBo_.getPlusNodes();
                         if (null != plusNodes_) {
                             Stream.of(plusNodes_).filter(x -> !urls.contains(x)).forEach(x -> {
