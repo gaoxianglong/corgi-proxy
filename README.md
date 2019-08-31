@@ -22,7 +22,6 @@ corgi=com.github.registry.corgi.CorgiRegistryFactory
 CorgiFramework framework = new CorgiFramework.Builder(new HostAndPort("127.0.0.1", 9376))//binding host and port 
         .redirections(2)//Designated number of retries
         .serialization(CorgiFramework.SerializationType.FST)//Designated serialization protocol
-        .isBatch(true)//Batch pull-out switch, only one incremental pull at a time when it is closed. 
         .pullSize(10)//Designated the number of single pulls
         .pullTimeOut(10000)//pull time out, unit-ms
         .builder()
