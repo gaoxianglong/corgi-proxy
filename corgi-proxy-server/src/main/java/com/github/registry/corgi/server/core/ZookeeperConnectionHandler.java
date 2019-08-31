@@ -80,7 +80,12 @@ public class ZookeeperConnectionHandler extends ZookeeperConnection implements Z
     }
 
     @Override
-    public void watch(String rootPath, WatchCallBack callBack) throws Exception {
-        zookeeperCommands.watch(rootPath, callBack);
+    public void watch(String rootPath, WatchCallBack callBack, String channelId) throws Exception {
+        zookeeperCommands.watch(rootPath, callBack, channelId);
+    }
+
+    @Override
+    public void unWatch(String channelId) {
+        zookeeperCommands.unWatch(channelId);
     }
 }

@@ -35,12 +35,11 @@ public class UnregisterCommand extends CorgiCommandTemplate {
     @Override
     public TransferBo.Content run(TransferBo transferBo) throws CommandException {
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
-        TransferBo.Content content = new TransferBo.Content();
         try {
             connectionHandler.deleteChildren(transferBo.getPersistentNode(), transferBo.getEphemeralNode());
         } catch (Throwable e) {
-            throw new CommandException("Unregister Command execution failed!!!", e);
+            throw new CommandException("Unregister command execution failed!!!", e);
         }
-        return content;
+        return new TransferBo.Content();
     }
 }

@@ -15,11 +15,14 @@
  */
 package com.github.registry.corgi.server.core;
 
+import com.github.registry.corgi.server.Constants;
 import com.github.registry.corgi.server.exceptions.CommandException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.listen.Listenable;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import org.slf4j.Logger;
@@ -28,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -111,7 +115,7 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
      * @return
      * @throws Exception
      */
-    private TreeCache getTreeCache(String rootPath) throws Exception {
+    private synchronized TreeCache getTreeCache(String rootPath) throws Exception {
         TreeCache cache = treeCacheMap.get(rootPath);
         if (null == cache) {
             cache = new TreeCache(framework, rootPath);
@@ -123,8 +127,8 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
     }
 
     @Override
-    public synchronized void watch(String rootPath, WatchCallBack callBack) throws Exception {
-        getTreeCache(rootPath).getListenable().addListener((client, event) -> {
+    public void watch(String rootPath, WatchCallBack callBack, String channelId) throws Exception {
+        TreeCacheListener listener = (client, event) -> {
             String path = null;
             try {
                 path = event.getData().getPath();
@@ -155,7 +159,34 @@ public class ZookeeperCommandsImpl implements ZookeeperCommands {
                 case INITIALIZED:
                     break;
             }
-        }, executorService);
+        };
+        log.debug("listener: {}", listener);
+        TreeCache cache = getTreeCache(rootPath);
+        //每个Channel在相同的TreeCache上都有一个独立的监听器
+        cache.getListenable().addListener(listener, executorService);
+        Map<TreeCache, Vector<TreeCacheListener>> listenerMap = listenerMaps.get(channelId);
+        if (null == listenerMap) {
+            listenerMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+            listenerMaps.put(channelId, listenerMap);
+        }
+        Vector<TreeCacheListener> listeners = listenerMap.get(cache);
+        if (null == listeners) {
+            listeners = new Vector<>(Constants.INITIAL_CAPACITY);
+            listenerMap.put(cache, listeners);
+        }
+        listeners.add(listener);
+    }
+
+    @Override
+    public void unWatch(String channelId) {
+        Map<TreeCache, Vector<TreeCacheListener>> map = listenerMaps.get(channelId);
+        if (null != map && !map.isEmpty()) {
+            map.forEach((treeCache, listeners) -> {
+                //从TreeCache中删除目标Channel绑定的TreeCacheListeners，取消监听
+                listeners.parallelStream().forEach(listener -> treeCache.getListenable().removeListener(listener));
+            });
+            listenerMaps.remove(channelId);
+        }
     }
 
     private boolean isExists(String path) throws Exception {

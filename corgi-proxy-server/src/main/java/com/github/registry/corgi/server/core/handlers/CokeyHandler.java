@@ -16,7 +16,6 @@
 package com.github.registry.corgi.server.core.handlers;
 
 import com.github.registry.corgi.server.Constants;
-import com.github.registry.corgi.server.core.ServiceEvents;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.server.core.commands.CorgiCommandHandler;
 import com.github.registry.corgi.utils.CorgiProtocol;
@@ -30,7 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 处理最终入站事件的ChannelHandler,负责调用下游具体的命令执行
@@ -42,30 +43,30 @@ import java.util.concurrent.ExecutorService;
 public class CokeyHandler extends ChannelInboundHandlerAdapter {
     private ZookeeperConnectionHandler connectionHandler;
     private ExecutorService executor;
-    private Map<String, ServiceEvents> nodes;
     /**
      * 记录一个Channel上注册过的所有节点，断开连接时全部都需要取消注册
      */
     private List<String> registerPaths = new Vector<>(Constants.INITIAL_CAPACITY);
     /**
-     * 记录一个Channel上订阅过的所有节点
+     * 每一个Channel都会对应一个用于存储事件流的集合
      */
-    private List<String> subscribePaths = new Vector<>(Constants.INITIAL_CAPACITY);
+    private Map<String, Vector<String>> eventMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    private String channelId;
     private Logger log = LoggerFactory.getLogger("");
 
-    public CokeyHandler(ZookeeperConnectionHandler connectionHandler, ExecutorService executor,
-                        Map<String, ServiceEvents> nodes) {
+    public CokeyHandler(ZookeeperConnectionHandler connectionHandler, ExecutorService executor) {
         this.connectionHandler = connectionHandler;
         this.executor = executor;
-        this.nodes = nodes;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        channelId = ctx.channel().id().toString();
         CorgiProtocol protocol = (CorgiProtocol) msg;
         //为了避免I/O线程阻塞，客户端请求会派发给具体的业务线程池处理，I/O线程仅仅只需负责连接的接收/断开、入站/出站事件等
         CompletableFuture<CorgiProtocol> future = CompletableFuture.supplyAsync(() -> {
-            return new CorgiCommandHandler(protocol, connectionHandler, nodes, registerPaths, subscribePaths).execute();
+            return new CorgiCommandHandler(protocol, connectionHandler, registerPaths, eventMap,
+                    channelId).execute();
         }, executor);
         future.exceptionally(x -> {
             log.error("error", x);
@@ -105,6 +106,7 @@ public class CokeyHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.debug("channel{}处于非活跃状态", ctx.channel());
         executor.execute(() -> {
+            connectionHandler.unWatch(channelId);//取消一个channel上的所有监听
             registerPaths.parallelStream().filter(x -> !StringUtils.isEmpty(x)).forEach(x -> {
                 try {
                     connectionHandler.deleteChildren(x);//客户端断开连接时，删除所有的临时节点,先暂时简单处理
@@ -113,8 +115,5 @@ public class CokeyHandler extends ChannelInboundHandlerAdapter {
                 }
             });
         });
-        if (!subscribePaths.isEmpty()) {
-            subscribePaths.clear();
-        }
     }
 }

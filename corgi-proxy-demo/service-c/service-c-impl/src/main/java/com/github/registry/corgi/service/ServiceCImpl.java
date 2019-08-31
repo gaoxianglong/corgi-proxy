@@ -18,6 +18,8 @@ package com.github.registry.corgi.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author gao_xianglong@sina.com
  * @version 0.1-SNAPSHOT

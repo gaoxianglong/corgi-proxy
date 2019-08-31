@@ -86,7 +86,7 @@ public class CorgiConnection {
                             ch.pipeline().addLast("acceptorIdleStateTrigger", new AcceptorIdleStateTrigger());//添加写空闲超时处理的ChannelHandler
                             //添加处理最终入站事件的ChannelHandler
                             ch.pipeline().addLast("corgiHandler", new CorgiClientHandler(CorgiFramework.getThreadMap(), CorgiFramework.getResultMap(),
-                                    CorgiFramework.getRegisterPaths(), CorgiFramework.getIndexMap()));
+                                    CorgiFramework.getRegisterPaths()));
                         }
                     });
             ChannelFuture future = bootstrap.connect().sync();//尝试连接corgi-server

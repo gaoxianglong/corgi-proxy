@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * corgi-client处理最终入站事件的ChannelHandler
@@ -37,26 +39,21 @@ import java.util.concurrent.TimeUnit;
  * @date created in 2019-06-17 22:56
  */
 public class CorgiClientHandler extends ChannelInboundHandlerAdapter {
-    private Map<Long, Object> threadMap;
-    private Map<String, Integer> indexMap;
+    private Map<Long, Object[]> threadMap;
     private Map<Long, CorgiProtocol> resultMap;
     private Map<String, RegisterCallBack> registerPaths;
     private Logger log = LoggerFactory.getLogger(CorgiClientHandler.class);
 
-    public CorgiClientHandler(Map<Long, Object> threadMap, Map<Long, CorgiProtocol> resultMap,
-                              Map<String, RegisterCallBack> registerPaths, Map<String, Integer> indexMap) {
+    public CorgiClientHandler(Map<Long, Object[]> threadMap, Map<Long, CorgiProtocol> resultMap,
+                              Map<String, RegisterCallBack> registerPaths) {
         this.threadMap = threadMap;
         this.resultMap = resultMap;
         this.registerPaths = registerPaths;
-        this.indexMap = indexMap;
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.warn("The connection({}) has been disconnected", ctx.channel());
-        indexMap.forEach((x, y) -> {
-            indexMap.put(x, 0);//重置客户端位点
-        });
         threadMap.values().parallelStream().forEach(x -> {
             synchronized (x) {
                 x.notify();
@@ -85,12 +82,17 @@ public class CorgiClientHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         CorgiProtocol protocol = (CorgiProtocol) msg;
         final long MSG_ID = protocol.getMsgId();
-        Object obj = threadMap.get(MSG_ID);
+        Object[] obj = threadMap.get(MSG_ID);
         if (null != obj) {
             threadMap.remove(MSG_ID);
             resultMap.put(MSG_ID, protocol);
-            synchronized (obj) {
-                obj.notify();//唤醒当前业务线程
+            ReentrantLock lock = (ReentrantLock) obj[0];
+            Condition condition = (Condition) obj[1];
+            try {
+                lock.lockInterruptibly();
+                condition.signal();//唤醒当前业务线程
+            } finally {
+                lock.unlock();
             }
         }
     }

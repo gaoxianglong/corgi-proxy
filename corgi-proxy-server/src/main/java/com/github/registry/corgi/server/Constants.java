@@ -80,6 +80,7 @@ public class Constants {
     public final static byte REGISTER_TYPE = 1;
     public final static byte UNREGISTER_TYPE = 2;
     public final static byte SUBSCRIBE_TYPE = 3;
+    public final static byte ACK_TYPE = 4;
 
     public final static int CAPACITY = 1000;
     public final static int INITIAL_CAPACITY = 32;
@@ -89,4 +90,5 @@ public class Constants {
     public final static int INITIAL_DELAY = 1000 * 60;
     public final static int PERIOD = 1000 * 60;
     public final static int AMOUNT = 1;
+    public final static int ACK_REMOVE_INDEX = 0;
 }

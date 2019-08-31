@@ -22,7 +22,6 @@
           class="com.github.registry.corgi.service.ServiceBImpl"/>
     <dubbo:registry protocol="corgi" id="corgi"
                     address="${corgiHost}">
-        <dubbo:parameter key="isBatch" value="true"/>
         <dubbo:parameter key="pullTimeOut" value="5000"/>
         <dubbo:parameter key="pullSize" value="10"/>
         <dubbo:parameter key="redirections" value="2"/>

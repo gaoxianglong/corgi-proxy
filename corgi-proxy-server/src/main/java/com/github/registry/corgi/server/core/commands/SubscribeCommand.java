@@ -16,7 +16,6 @@
 package com.github.registry.corgi.server.core.commands;
 
 import com.github.registry.corgi.server.Constants;
-import com.github.registry.corgi.server.core.ServiceEvents;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.server.exceptions.CommandException;
 import com.github.registry.corgi.utils.CorgiProtocol;
@@ -34,12 +33,14 @@ import java.util.concurrent.locks.ReentrantLock;
  * 订阅命令处理类，用户Consumer订阅寻址使用
  *
  * @author gao_xianglong@sina.com
- * @version 0.1-SNAPSHOT
- * @date created in 2019-06-19 17:32
+ * ated in 2019-06-19 17:32
  */
 public class SubscribeCommand extends CorgiCommandTemplate {
-    private Map<String, ServiceEvents> nodes;
-    private List<String> subscribePaths;
+    /**
+     * 每一个Channel都会对应一个存储事件流的集合
+     */
+    private Map<String, Vector<String>> eventMap;
+    private String channelId;
     private Logger log = LoggerFactory.getLogger("");
 
     protected SubscribeCommand(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler) {
@@ -47,11 +48,10 @@ public class SubscribeCommand extends CorgiCommandTemplate {
     }
 
     protected SubscribeCommand(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler,
-                               Map<String, ServiceEvents> nodes, List<String> subscribePaths) {
+                               Map<String, Vector<String>> eventMap, String channelId) {
         this(protocol, connectionHandler);
-        this.nodes = nodes;
-        this.subscribePaths = subscribePaths;
-
+        this.eventMap = eventMap;
+        this.channelId = channelId;
     }
 
     @Override
@@ -59,122 +59,89 @@ public class SubscribeCommand extends CorgiCommandTemplate {
             throws CommandException {
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
         TransferBo.Content content = new TransferBo.Content();
-        final String PATH = transferBo.getPersistentNode();
-        int position = transferBo.getPosition();//客户端位点
+        final String PATH = transferBo.getPersistentNode();//获取目标服务接口znode
         int pullSize = transferBo.getPullSize();
-        ServiceEvents serviceEvents = nodes.get(PATH);
-        ReentrantLock lock = lockMap.get(PATH);
-        Condition condition = conditionMap.get(PATH);
+        Vector<String> events = eventMap.get(PATH);
+        ReentrantLock lock = lockMap.get(channelId);
+        Condition condition = conditionMap.get(channelId);
+        boolean isContains = true;
         try {
-            synchronized (nodes) {
-                if (!nodes.containsKey(PATH)) {
+            if (null == events) {
+                try {
                     if (null == lock) {
                         lock = new ReentrantLock();
-                        lockMap.put(PATH, lock);
+                        lockMap.put(channelId, lock);
                     }
                     if (null == condition) {
                         condition = lock.newCondition();
-                        conditionMap.put(PATH, condition);
+                        conditionMap.put(channelId, condition);
                     }
-                    serviceEvents = new ServiceEvents();
-                    nodes.put(PATH, serviceEvents);
-                    ServiceEvents finalServiceEvents = serviceEvents;
+                    eventMap.put(PATH, events = new Vector<>(Constants.INITIAL_CAPACITY));
                     Condition finalCondition = condition;
                     ReentrantLock finalLock = lock;
                     //watch,检测到事件流后触发后回调
+                    Vector<String> finalEvents = events;
                     connectionHandler.watch(PATH, event -> {
                         finalLock.lockInterruptibly();
                         try {
-                            finalServiceEvents.addEvent(event);//记录变化的上/下线事件流
-                            finalCondition.signalAll();
+                            finalEvents.add(event);//记录服务的上/下线事件流
+                            finalCondition.signal();
                             log.debug("event:{}", event);
                         } finally {
                             finalLock.unlock();
                         }
-                    });
+                    }, channelId);
+                } finally {
+                    isContains = false;
                 }
             }
-            if (!subscribePaths.contains(PATH)) {
-                subscribePaths.add(PATH);
+            if (!isContains) {
+                if (null != events && !events.isEmpty()) {
+                    events.clear();//全量数据返回之前首先执行去重操作，最大程度上避免重复拉取
+                }
                 List<String> result = null;
-                int lastPosition = serviceEvents.getLastPosition();
                 do {
                     result = connectionHandler.getChildrensSnapshot(PATH); //如果是第一次订阅，则返回本地快照的全量数据
                 } while (result.isEmpty());
                 content.setPlusNodes(result.toArray(new String[result.size()]));
-                content.setInitPosition(lastPosition);//返回给客户端的初始位点,最大程度上避免重复拉取
             } else {
-                log.debug("serviceEvents.getLastPosition():{}", serviceEvents.getLastPosition());
-                //如果开启了批量拉取，超过超时时间则返回，不会一直阻塞
-                if (transferBo.isBatch()) {
-                    List<String> plusNodesList = null;
-                    List<String> reducesNodesList = null;
-                    int lastPosition = 0;
-                    long nanos = TimeUnit.MILLISECONDS.toNanos(transferBo.getPullTimeOut());
-                    lock.lockInterruptibly();
-                    try {
-                        while ((lastPosition = serviceEvents.getLastPosition()) < (position + pullSize)) {//判断是否能够拉取到足够的数据,如果够拉取则不阻塞
-                            if (nanos <= 0) {
-                                break;
-                            }
-                            nanos = condition.awaitNanos(nanos);
-                        }
-                    } finally {
-                        lock.unlock();
-                    }
-                    //获取客户端真正的拉取数量
-                    pullSize = (lastPosition - position) <= 0 ? 0 : (lastPosition - position) >= pullSize ?
-                            pullSize : lastPosition - position;
-                    for (int i = 0; i < pullSize; i++) {
-                        String temp = null;
-                        try {
-                            temp = serviceEvents.getEvent(position++);
-                        } catch (CommandException e) {
-                            content.setInitPosition(serviceEvents.getInitPosition());
+                List<String> plusNodesList = null;
+                List<String> reducesNodesList = null;
+                long nanos = TimeUnit.MILLISECONDS.toNanos(transferBo.getPullTimeOut());
+                lock.lockInterruptibly();
+                try {
+                    while (events.size() < pullSize) {//判断是否能够拉取到足够的数据,如果够拉取则不阻塞
+                        if (nanos <= 0) {
+                            pullSize = events.size();//如果拉取数量>事件数量，则拉取数量=事件数量
                             break;
                         }
-                        if (StringUtils.isEmpty(temp)) {
-                            continue;
-                        }
-                        if (temp.startsWith(Constants.PLUS_EVENT)) {
-                            if (null == plusNodesList) {
-                                plusNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
-                            }
-                            plusNodesList.add(temp.substring(Constants.BEGIN_INDEX));
-                        } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
-                            if (null == reducesNodesList) {
-                                reducesNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
-                            }
-                            reducesNodesList.add(temp.substring(Constants.BEGIN_INDEX));
-                        }
+                        nanos = condition.awaitNanos(nanos);
                     }
-                    addNodes(content, null != plusNodesList ? plusNodesList.toArray(new String[plusNodesList.size()]) : null,
-                            null != reducesNodesList ? reducesNodesList.toArray(new String[reducesNodesList.size()]) : null);
-                } else {
-                    lock.lockInterruptibly();
-                    try {
-                        while (serviceEvents.getLastPosition() - position <= 0) {
-                            condition.await();
+                } finally {
+                    lock.unlock();
+                }
+                for (int i = 0; i < pullSize; i++) {
+                    final String temp = events.get(i);
+                    if (StringUtils.isEmpty(temp)) {
+                        continue;
+                    }
+                    if (temp.startsWith(Constants.PLUS_EVENT)) {
+                        if (null == plusNodesList) {
+                            plusNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                         }
-                        String temp = null;
-                        try {
-                            temp = serviceEvents.getEvent(position++);
-                        } catch (CommandException e) {
-                            content.setInitPosition(serviceEvents.getInitPosition());
+                        plusNodesList.add(temp.substring(Constants.BEGIN_INDEX));
+                    } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
+                        if (null == reducesNodesList) {
+                            reducesNodesList = new Vector<>(Constants.INITIAL_CAPACITY);
                         }
-                        final String[] nodes = new String[]{temp.substring(Constants.BEGIN_INDEX)};
-                        if (temp.startsWith(Constants.PLUS_EVENT)) {
-                            addNodes(content, nodes, null);
-                        } else if (temp.startsWith(Constants.REDUCES_EVENT)) {
-                            addNodes(content, null, nodes);
-                        }
-                    } finally {
-                        lock.unlock();
+                        reducesNodesList.add(temp.substring(Constants.BEGIN_INDEX));
                     }
                 }
+                addNodes(content, null != plusNodesList ? plusNodesList.toArray(new String[plusNodesList.size()]) : null,
+                        null != reducesNodesList ? reducesNodesList.toArray(new String[reducesNodesList.size()]) : null);
             }
         } catch (Throwable e) {
-            throw new CommandException("Subscribe Command execution failed!!!", e);
+            throw new CommandException("Subscribe command execution failed!!!", e);
         }
         return content;
     }

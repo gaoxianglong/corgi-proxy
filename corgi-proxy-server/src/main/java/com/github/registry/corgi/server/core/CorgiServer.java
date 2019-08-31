@@ -33,10 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,13 +52,10 @@ public class CorgiServer {
     private Parameters parameters;
     private ZookeeperConnectionHandler connectionHandler;
     private long beginTime;
-    /**
-     * 记录服务的上/下线事件流
-     */
-    private static volatile Map<String, ServiceEvents> nodes = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
     private static Logger log = LoggerFactory.getLogger("");
 
-    public CorgiServer(long beginTime, Parameters parameters, ExecutorService executor, ZookeeperConnectionHandler connectionHandler) {
+    public CorgiServer(long beginTime, Parameters parameters, ExecutorService executor,
+                       ZookeeperConnectionHandler connectionHandler) {
         this.beginTime = beginTime;
         this.parameters = parameters;
         this.executor = executor;
@@ -106,7 +100,7 @@ public class CorgiServer {
                                     Constants.ALL_IDLE_TIME, TimeUnit.SECONDS));//添加IdleStateHandler
                             ch.pipeline().addLast("acceptorIdleStateTrigger", new AcceptorIdleStateTrigger());//添加读空闲超时处理的ChannelHandler
                             ch.pipeline().addLast("heartbeatHandler", new HeartbeatHandler());//添加心跳处理的ChannelHandler
-                            ch.pipeline().addLast("cokeyHandler", new CokeyHandler(connectionHandler, executor, nodes));//添加核心命令处理的ChannelHandler
+                            ch.pipeline().addLast("cokeyHandler", new CokeyHandler(connectionHandler, executor));//添加核心命令处理的ChannelHandler
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, backLog)//Socket参数,服务端接受连接的队列长度,如果队列已满,客户端连接将被拒绝
@@ -125,7 +119,7 @@ public class CorgiServer {
                             .divide(new BigDecimal(1000), 2, BigDecimal.ROUND_DOWN).doubleValue());
                     log.info("Corgi-server start successful (bind port: {}, pid: {})", port, Constants.PID);
                 } finally {
-                    clean();
+                    //clean();
                     destroyAll(bossGroup, workerGroup);
                 }
             }
@@ -133,17 +127,6 @@ public class CorgiServer {
         } catch (Throwable e) {
             throw new StartingException(e);
         }
-    }
-
-    /**
-     * 定时清空过期事件流,缺省60s执行一次检测
-     */
-    private void clean() {
-        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
-            log.debug("Prepare for cleanup events...");
-            long timestamp = System.currentTimeMillis();
-            nodes.forEach((x, y) -> y.cleanPeriodically(timestamp));
-        }, Constants.INITIAL_DELAY, Constants.PERIOD, TimeUnit.MILLISECONDS);
     }
 
     /**

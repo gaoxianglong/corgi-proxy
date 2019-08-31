@@ -20,7 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 处理Channel的消息发送/请求接收
@@ -48,6 +52,10 @@ public class CorgiClient extends CorgiConnection implements CommandOperation {
 
     @Override
     public void sendCommand(CorgiProtocol protocol, CorgiCommands template) {
+        ReentrantLock lock = new ReentrantLock();
+        Condition condition = lock.newCondition();
+        Object[] temp = {lock, condition};
+        CorgiFramework.getThreadMap().put(protocol.getMsgId(), temp);
         super.getChannel().writeAndFlush(protocol).addListener(x -> {
             if (x.isSuccess()) {
                 log.debug("Command sent successfully,protocol({})", protocol.toString());
@@ -57,9 +65,15 @@ public class CorgiClient extends CorgiConnection implements CommandOperation {
         });
         synchronized (template) {
             try {
-                template.wait();//阻塞当前业务线程，等待corgi-server响应对等消息时被唤醒
+                lock.lockInterruptibly();
+                long beginTime = System.currentTimeMillis();
+                condition.await();//阻塞当前业务线程，等待corgi-server响应对等消息时被唤醒
+                long endTime = System.currentTimeMillis();
+                log.debug("Response time: {}s", (endTime - beginTime) / 1000);
             } catch (InterruptedException e) {
                 //...
+            } finally {
+                lock.unlock();
             }
         }
     }

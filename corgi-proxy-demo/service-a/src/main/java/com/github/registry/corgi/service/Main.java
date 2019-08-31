@@ -37,8 +37,8 @@ public class Main {
             try {
                 log.info("result: {}", serviceB.run());
                 TimeUnit.SECONDS.sleep(2);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                log.error("error", e);
             }
         }
     }

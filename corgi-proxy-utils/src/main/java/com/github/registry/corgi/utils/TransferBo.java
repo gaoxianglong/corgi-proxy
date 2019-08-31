@@ -40,17 +40,9 @@ public class TransferBo implements Serializable {
      */
     private int pullSize;
     /**
-     * 客户端位点
-     */
-    private int position;
-    /**
      * 拉取超时时间
      */
     private int pullTimeOut;
-    /**
-     * 批量拉取开关
-     */
-    private Boolean isBatch;
     /**
      * response结果集
      */
@@ -69,18 +61,6 @@ public class TransferBo implements Serializable {
          * 删除节点
          */
         private String[] reducesNodes;
-        /**
-         * 第一次订阅时返回给客户端的初始位点
-         */
-        private int initPosition;
-
-        public int getInitPosition() {
-            return initPosition;
-        }
-
-        public void setInitPosition(int initPosition) {
-            this.initPosition = initPosition;
-        }
 
         public String getResult() {
             return result;
@@ -112,7 +92,6 @@ public class TransferBo implements Serializable {
                     "result='" + result + '\'' +
                     ", plusNodes=" + Arrays.toString(plusNodes) +
                     ", reducesNodes=" + Arrays.toString(reducesNodes) +
-                    ", initPosition=" + initPosition +
                     '}';
         }
     }
@@ -149,14 +128,6 @@ public class TransferBo implements Serializable {
         this.pullTimeOut = pullTimeOut;
     }
 
-    public Boolean isBatch() {
-        return isBatch;
-    }
-
-    public void setBatch(Boolean batch) {
-        isBatch = batch;
-    }
-
     public Content getContent() {
         return content;
     }
@@ -165,23 +136,13 @@ public class TransferBo implements Serializable {
         this.content = content;
     }
 
-    public int getPosition() {
-        return position;
-    }
-
-    public void setPosition(int position) {
-        this.position = position;
-    }
-
     @Override
     public String toString() {
         return "TransferBo{" +
                 "persistentNode='" + persistentNode + '\'' +
                 ", ephemeralNode='" + ephemeralNode + '\'' +
                 ", pullSize=" + pullSize +
-                ", position=" + position +
                 ", pullTimeOut=" + pullTimeOut +
-                ", isBatch=" + isBatch +
                 ", content=" + content.toString() +
                 '}';
     }

@@ -16,12 +16,13 @@
 package com.github.registry.corgi.server.core.commands;
 
 import com.github.registry.corgi.server.Constants;
-import com.github.registry.corgi.server.core.ServiceEvents;
 import com.github.registry.corgi.server.core.ZookeeperConnectionHandler;
 import com.github.registry.corgi.utils.CorgiProtocol;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * 实际命令处理类
@@ -33,17 +34,19 @@ import java.util.Map;
 public class CorgiCommandHandler implements CorgiCommandStrategy {
     private CorgiProtocol protocol;
     private ZookeeperConnectionHandler connectionHandler;
-    private Map<String, ServiceEvents> nodes;
     private List<String> registerPaths;
-    private List<String> subscribePaths;
+    private Map<String, Vector<String>> eventMap;
+    private String channelId;
 
     public CorgiCommandHandler(CorgiProtocol protocol, ZookeeperConnectionHandler connectionHandler,
-                               Map<String, ServiceEvents> nodes, List<String> registerPaths, List<String> subscribePaths) {
+                               List<String> registerPaths,
+                               Map<String, Vector<String>> eventMap,
+                               String channelId) {
         this.protocol = protocol;
         this.connectionHandler = connectionHandler;
-        this.nodes = nodes;
         this.registerPaths = registerPaths;
-        this.subscribePaths = subscribePaths;
+        this.eventMap = eventMap;
+        this.channelId = channelId;
     }
 
 
@@ -63,7 +66,10 @@ public class CorgiCommandHandler implements CorgiCommandStrategy {
                 result = new UnregisterCommand(protocol, connectionHandler).execute();
                 break;
             case Constants.SUBSCRIBE_TYPE:
-                result = new SubscribeCommand(protocol, connectionHandler, nodes, subscribePaths).execute();
+                result = new SubscribeCommand(protocol, connectionHandler, eventMap, channelId).execute();
+                break;
+            case Constants.ACK_TYPE:
+                result = new AckMessageCommand(protocol, connectionHandler, eventMap).execute();
         }
         return result;
     }

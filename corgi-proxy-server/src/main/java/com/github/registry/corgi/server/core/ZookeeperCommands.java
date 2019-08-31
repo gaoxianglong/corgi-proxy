@@ -18,9 +18,11 @@ package com.github.registry.corgi.server.core;
 import com.github.registry.corgi.server.Constants;
 import com.github.registry.corgi.server.common.threadpool.CorgiExecutorService;
 import org.apache.curator.framework.recipes.cache.TreeCache;
+import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -36,6 +38,10 @@ public interface ZookeeperCommands {
      * 每个节点都会由一个全局TreeCache来保证一个时序正确、最终一致的事件流
      */
     Map<String, TreeCache> treeCacheMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    /**
+     * 每一个Channel都会对应一组TreeCacheListener列表
+     */
+    Map<String, Map<TreeCache, Vector<TreeCacheListener>>> listenerMaps = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
 
     /**
      * TreeCache的Listener监听器线程组
@@ -96,7 +102,15 @@ public interface ZookeeperCommands {
      *
      * @param rootPath
      * @param callBack
+     * @param channelId
      * @throws Exception
      */
-    void watch(String rootPath, WatchCallBack callBack) throws Exception;
+    void watch(String rootPath, WatchCallBack callBack, String channelId) throws Exception;
+
+    /**
+     * 取消监听
+     *
+     * @param channelId
+     */
+    void unWatch(String channelId);
 }

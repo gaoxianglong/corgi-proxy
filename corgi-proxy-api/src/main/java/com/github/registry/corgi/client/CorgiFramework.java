@@ -33,7 +33,7 @@ public class CorgiFramework implements CorgiCommands {
     /**
      * 每个全局唯一的msgid对应一个业务线程
      */
-    private volatile static Map<Long, Object> threadMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
+    private volatile static Map<Long, Object[]> threadMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
     /**
      * 存储请求结果的全局集合，每一个结果与全局唯一的msgid对应
      */
@@ -45,10 +45,6 @@ public class CorgiFramework implements CorgiCommands {
     private volatile static CorgiConnectionHandler connectionHandler;
     private volatile static List<HostAndPort> hostAndPorts = new Vector<>(Constants.INITIAL_CAPACITY);
     /**
-     * 客户端位点
-     */
-    private volatile static Map<String, Integer> indexMap = new ConcurrentHashMap<>(Constants.INITIAL_CAPACITY);
-    /**
      * 系列化类型，缺省为FST
      */
     private SerializationType serialization;
@@ -57,17 +53,13 @@ public class CorgiFramework implements CorgiCommands {
      */
     private int redirections;
     /**
-     * 每次批量拉取的数量,缺省为1,不开启批量此参数无意义
+     * 每次批量拉取的数量,缺省为1
      */
     private int pullSize;
     /**
-     * 拉取超时时间,缺省为10000ms,不开启批量此参数无意义
+     * 拉取超时时间,缺省为10000ms
      */
     private int pullTimeOut;
-    /**
-     * 批量拉取开关,缺省关闭
-     */
-    private boolean isBatch;
     private Logger log = LoggerFactory.getLogger(CorgiFramework.class);
 
     private CorgiFramework(Builder builder) {
@@ -76,7 +68,6 @@ public class CorgiFramework implements CorgiCommands {
         this.redirections = builder.redirections;
         this.pullSize = builder.pullSize;
         this.pullTimeOut = builder.pullTimeOut;
-        this.isBatch = builder.isBatch;
     }
 
     public static class Builder {
@@ -84,7 +75,6 @@ public class CorgiFramework implements CorgiCommands {
         private int pullTimeOut = Constants.DEFAULT_PULL_TIMEOUT;
         private int redirections = Constants.REDIRECTIONS;
         private List<HostAndPort> hostAndPorts;
-        private boolean isBatch = Constants.DEFAULT_ISBATCH;
         private SerializationType serialization = SerializationType.FST;
 
         public Builder(HostAndPort hostAndPort) {
@@ -110,11 +100,6 @@ public class CorgiFramework implements CorgiCommands {
             return this;
         }
 
-        public Builder isBatch(boolean isBatch) {
-            this.isBatch = isBatch;
-            return this;
-        }
-
         public Builder pullTimeOut(int pullTimeOut) {
             this.pullTimeOut = pullTimeOut;
             return this;
@@ -131,7 +116,6 @@ public class CorgiFramework implements CorgiCommands {
                     ", pullTimeOut=" + pullTimeOut +
                     ", redirections=" + redirections +
                     ", hostAndPorts=" + hostAndPorts +
-                    ", isBatch=" + isBatch +
                     ", serialization=" + serialization +
                     '}';
         }
@@ -177,9 +161,14 @@ public class CorgiFramework implements CorgiCommands {
 
     @Override
     public NodeBo subscribe(String persistentNode) {
-        CorgiCommandsTemplate template = isBatch ? new CorgiCommandsTemplate(serialization, redirections, isBatch, pullSize, pullTimeOut)
-                : new CorgiCommandsTemplate(serialization, redirections);
-        return template.subscribe(persistentNode);
+        CorgiCommandsTemplate template = new CorgiCommandsTemplate(serialization, redirections, pullSize, pullTimeOut);
+        NodeBo nodeBo = template.subscribe(persistentNode);
+        //成功订阅到事件流后触发ACK机制删除数据
+        if (null != nodeBo && (null != nodeBo.getPlusNodes() || null != nodeBo.getReducesNodes())) {
+            final String RESULT = template.ack(persistentNode, pullSize);
+            log.debug("ACK type: {}", RESULT);
+        }
+        return nodeBo;
     }
 
     public static enum SerializationType {
@@ -200,7 +189,7 @@ public class CorgiFramework implements CorgiCommands {
         connectionHandler.close();//资源释放，断开与corgi-server的会话连接
     }
 
-    protected static Map<Long, Object> getThreadMap() {
+    protected static Map<Long, Object[]> getThreadMap() {
         return threadMap;
     }
 
@@ -222,13 +211,5 @@ public class CorgiFramework implements CorgiCommands {
 
     public static List<HostAndPort> getHostAndPorts() {
         return hostAndPorts;
-    }
-
-    public static Map<String, Integer> getIndexMap() {
-        return indexMap;
-    }
-
-    public static void setIndexMap(Map<String, Integer> indexMap) {
-        CorgiFramework.indexMap = indexMap;
     }
 }

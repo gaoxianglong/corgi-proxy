@@ -50,7 +50,6 @@ public class CorgiRegistry extends FailbackRegistry {
     private int redirections;
     private int pullTimeOut;
     private int pullSize;
-    private Boolean isBatch;
     private CorgiFramework framework;
     private String root;
     private Logger log = LoggerFactory.getLogger(CorgiRegistry.class);
@@ -65,7 +64,6 @@ public class CorgiRegistry extends FailbackRegistry {
         redirections = url.getParameter("redirections", com.github.registry.corgi.client.Constants.REDIRECTIONS);
         pullTimeOut = url.getParameter("pullTimeOut", com.github.registry.corgi.client.Constants.DEFAULT_PULL_TIMEOUT);
         pullSize = url.getParameter("pullSize", com.github.registry.corgi.client.Constants.DEFAULT_PULL_SIZE);
-        isBatch = url.getParameter("isBatch", com.github.registry.corgi.client.Constants.DEFAULT_ISBATCH);
         init(url.getBackupAddress());
     }
 
@@ -86,7 +84,7 @@ public class CorgiRegistry extends FailbackRegistry {
         if (!hostAndPorts.isEmpty()) {
             serializationType = CorgiFramework.SerializationType.FST;
             framework = new CorgiFramework.Builder(hostAndPorts).serialization(serializationType).
-                    redirections(redirections).isBatch(isBatch).pullSize(pullSize).pullTimeOut(pullTimeOut).builder().init();
+                    redirections(redirections).pullSize(pullSize).pullTimeOut(pullTimeOut).builder().init();
         }
     }
 

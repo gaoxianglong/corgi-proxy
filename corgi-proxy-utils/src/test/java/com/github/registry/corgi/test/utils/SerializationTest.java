@@ -34,7 +34,6 @@ public class SerializationTest {
         //flag低位第1位为1表示使用Kryo二进制序列化协议，第2位为1表示使用Fastjson序列化协议，第3位或第4位为1表示使用FST二进制系列化协议
         TransferBo transferBo = new TransferBo();
         transferBo.setPersistentNode("dubbo");
-        transferBo.setBatch(true);
         transferBo.setPullSize(10);
         transferBo.setPullTimeOut(10);
         TransferBo.Content content = new TransferBo.Content();

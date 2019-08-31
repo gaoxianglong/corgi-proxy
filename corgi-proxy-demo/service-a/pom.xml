@@ -24,6 +24,12 @@
             <version>0.2-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.sgroschupf</groupId>
+            <artifactId>zkclient</artifactId>
+            <version>0.1</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 

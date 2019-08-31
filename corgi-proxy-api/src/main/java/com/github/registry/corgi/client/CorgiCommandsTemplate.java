@@ -43,20 +43,18 @@ public class CorgiCommandsTemplate implements CorgiCommands {
      */
     private CorgiFramework.SerializationType serialization;
     private final int redirections;
-    private boolean isBatch;
     private int pullSize;
     private int pullTimeOut;
     private Logger log = LoggerFactory.getLogger(CorgiCommandsTemplate.class);
 
     protected CorgiCommandsTemplate(CorgiFramework.SerializationType serialization, int redirections) {
-        this(serialization, redirections, false, 0, 0);
+        this(serialization, redirections, 0, 0);
     }
 
     protected CorgiCommandsTemplate(CorgiFramework.SerializationType serialization, int redirections,
-                                    boolean isBatch, int pullSize, int pullTimeOut) {
+                                    int pullSize, int pullTimeOut) {
         this.serialization = serialization;
         this.redirections = redirections;
-        this.isBatch = isBatch;
         this.pullSize = pullSize;
         this.pullTimeOut = pullTimeOut;
     }
@@ -84,7 +82,7 @@ public class CorgiCommandsTemplate implements CorgiCommands {
             byte[] content = CorgiSerializationUtil.serialize(FLAG, transferBo);//序列化
             protocol.setContent(content);
             protocol.setLength(content.length);
-            CorgiFramework.getThreadMap().put(protocol.getMsgId(), this);
+            //CorgiFramework.getThreadMap().put(protocol.getMsgId(), this);
             connectionHandler.sendCommand(protocol, this);
             //对结果进行反序列化
             TransferBo temp = CorgiSerializationUtil.deserialize(FLAG, connectionHandler.getResult(protocol.getMsgId()).getContent());
@@ -133,41 +131,33 @@ public class CorgiCommandsTemplate implements CorgiCommands {
     public NodeBo subscribe(String persistentNode) {
         TransferBo transferBo = new TransferBo();
         transferBo.setPersistentNode(persistentNode);
-        transferBo.setBatch(isBatch);
         transferBo.setPullSize(pullSize);
         transferBo.setPullTimeOut(pullTimeOut);
-        Map<String, Integer> indexMap = CorgiFramework.getIndexMap();
-        int position = 0;
-        if (!indexMap.containsKey(persistentNode)) {
-            indexMap.put(persistentNode, position);
-        } else {
-            position = indexMap.get(persistentNode);
-        }
-        transferBo.setPosition(position);
-        log.debug("persistentNode:{},position:{}", persistentNode, position);
-        int finalPosition = position;
         return run(() -> {
             TransferBo.Content content = runWithRetries(redirections, transferBo,
                     assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.SUBSCRIBE_TYPE), null);
             //判断命令是否执行成功,只有执行成功才返回结果集
             if (content.getResult().equals(Constants.REQUEST_RESULT)) {
-                final int initIndex = content.getInitPosition();
-                if (initIndex > 0) {
-                    indexMap.put(persistentNode, initIndex);//第一次全量返回以及无效位点访问时，初始客户端位点
-                } else {
-                    int size = 0;
-                    if (null != content.getPlusNodes()) {
-                        size += content.getPlusNodes().length;
-                    }
-                    if (null != content.getReducesNodes()) {
-                        size += content.getReducesNodes().length;
-                    }
-                    indexMap.put(persistentNode, finalPosition + size);
-                }
                 return new NodeBo(content.getPlusNodes(), content.getReducesNodes());
             }
             return null;
         }, persistentNode);
+    }
+
+    /**
+     * 成功订阅事件流后触发ACK机制真正删除corgi-server中的数据
+     *
+     * @param persistentNode
+     * @param pullSize       需要删除的事件数量
+     * @return
+     */
+    protected String ack(String persistentNode, int pullSize) {
+        TransferBo transferBo = new TransferBo();
+        transferBo.setPersistentNode(persistentNode);
+        transferBo.setPullSize(pullSize);
+        return run(() -> runWithRetries(redirections, transferBo,
+                assemblyProtocol(getFlag(), CorgiProtocol.createMsgId(), Constants.ACK_TYPE), null).getResult(),
+                persistentNode);
     }
 
     private void check(String... params) {

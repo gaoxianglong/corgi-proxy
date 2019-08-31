@@ -44,13 +44,12 @@ public class RegisterCommand extends CorgiCommandTemplate {
     @Override
     public TransferBo.Content run(TransferBo transferBo) throws CommandException {
         ZookeeperConnectionHandler connectionHandler = super.getConnectionHandler();
-        TransferBo.Content content = new TransferBo.Content();
         try {
             //如果根目录不存在，则自动创建
             registerPaths.add(connectionHandler.createEphemeralNode(transferBo.getPersistentNode(), transferBo.getEphemeralNode()));
         } catch (Throwable e) {
-            throw new CommandException("Register Command execution failed!!!", e);
+            throw new CommandException("Register command execution failed!!!", e);
         }
-        return content;
+        return new TransferBo.Content();
     }
 }

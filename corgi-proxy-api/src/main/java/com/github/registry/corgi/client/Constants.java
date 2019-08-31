@@ -28,6 +28,7 @@ public class Constants {
     public final static byte REGISTER_TYPE = 1;
     public final static byte UNREGISTER_TYPE = 2;
     public final static byte SUBSCRIBE_TYPE = 3;
+    public final static byte ACK_TYPE = 4;
 
     public final static byte REQUEST_KRYO_FLAG = 0b00100001;
     public final static byte REQUEST_FASTJSON_FLAG = 0b00100010;

@@ -14,13 +14,14 @@
         <module>corgi-proxy-utils</module>
         <module>corgi-proxy-demo</module>
         <module>corgi-proxy-monitor</module>
+        <module>corgi-proxy-docker</module>
     </modules>
     <properties>
         <java-version>1.8</java-version>
         <fastjson>1.2.47</fastjson>
         <junit-version>4.8.2</junit-version>
         <netty-version>4.1.7.Final</netty-version>
-        <org.slf4j-version>1.6.6</org.slf4j-version>
+        <org.slf4j-version>1.7.25</org.slf4j-version>
         <zookeeper-version>3.4.14</zookeeper-version>
         <commons-version>3.8</commons-version>
         <fst-version>2.56</fst-version>
@@ -80,6 +81,14 @@
             <version>${zookeeper-version}</version>
             <exclusions>
                 <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>junit</groupId>
                     <artifactId>junit</artifactId>
                 </exclusion>
@@ -103,39 +112,18 @@
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>${org.slf4j-version}</version>
-            <scope>runtime</scope>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>1.7.25</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>${org.slf4j-version}</version>
-            <scope>runtime</scope>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.2.3</version>
         </dependency>
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.15</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.mail</groupId>
-                    <artifactId>mail</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.jms</groupId>
-                    <artifactId>jms</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jdmk</groupId>
-                    <artifactId>jmxtools</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jmx</groupId>
-                    <artifactId>jmxri</artifactId>
-                </exclusion>
-            </exclusions>
-            <scope>runtime</scope>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.curator</groupId>
